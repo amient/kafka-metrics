@@ -27,6 +27,7 @@
         <module>metrics-producer</module>
         <module></module>
         <module>yammer-reporter</module>
+        <module>influxdb-loader</module>
         <!--<module>influxdb-loader</module>-->
     </modules>
 
