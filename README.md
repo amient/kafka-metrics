@@ -1,8 +1,9 @@
-This is a basic structure centered around a set of kafka topics 'metrics-...'. 
-The basic module provides a producer which can be used by applications and services and is also used in the module 
-yammer-reporter to ingest kafka broker metrics.
- 
+# Kafka Metrics  <sup><sup>:no_entry_sign: UNDER CONSTRUCTION</sup></sup>
 
+This is a basic structure centered around a single topic 'metrics'. The basic module provides a reporter which 
+can be used by kafka broker, kafka producer or consumer and other applications and services which use yammer metrics
+library.
+ 
  
 # Usage in Kafka Broker
 
