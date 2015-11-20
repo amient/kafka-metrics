@@ -1,0 +1,8 @@
+This product is based on ideas from stealth.ly metrics-kafka, riemann and influxDb.
+
+Packaged version of this software contains:
+
+- Apache Kafka (Apache 2.0 License)
+- Apache Avro (Apache 2.0 License)
+- kafka-avro-serializer Copyright 2014 Confluent Inc. (Apache 2.0 License)
+- Yammer Metrics (Apache 2.0 License)

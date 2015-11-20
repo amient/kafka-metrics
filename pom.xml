@@ -7,32 +7,48 @@
         <maven>3.0.0</maven>
     </prerequisites>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kafka.version>0.8.2.1</kafka.version>
-        <scala.version>2.10.4</scala.version>
-        <scala.minor.version>2.10</scala.minor.version>
-        <java.version>1.7</java.version>
-    </properties>
-
     <groupId>io.amient.kafka.metrics</groupId>
     <artifactId>kafka-metrics</artifactId>
-    <version>${kafka.version}</version>
+    <version>0.8.2.1</version>
     <packaging>pom</packaging>
     <name>Amient.io Kafka Metrics producer, reporter and consumer framework.</name>
     <description>Producer, reporter and consumer framework.</description>
     <url>https://github.com/amient/kafka-metrics</url>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <confluent.version>1.0.1</confluent.version>
+        <metrics.version>2.2.0</metrics.version>
+        <kafka.version>${project.version}</kafka.version>
+        <scala.version>2.10.4</scala.version>
+        <scala.minor.version>2.10</scala.minor.version>
+        <java.version>1.6</java.version>
+    </properties>
+
     <modules>
-        <module>metrics-producer</module>
-        <module></module>
-        <module>yammer-reporter</module>
+        <module>stream-reporter</module>
         <module>influxdb-loader</module>
-        <!--<module>influxdb-loader</module>-->
     </modules>
+
+    <repositories>
+        <repository>
+            <id>confluent</id>
+            <url>http://packages.confluent.io/maven/</url>
+        </repository>
+    </repositories>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-avro-serializer</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.yammer.metrics</groupId>
+                <artifactId>metrics-core</artifactId>
+                <version>${metrics.version}</version>
+            </dependency>
             <dependency>
                 <groupId>io.amient.kafka.metrics</groupId>
                 <artifactId>metrics-producer</artifactId>
@@ -66,6 +82,44 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <sourceDirectory>src/main/java</sourceDirectory>
+        <testSourceDirectory>src/test/java</testSourceDirectory>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>dropin-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <finalName>metrics-streaming-reporter-${project.version}</finalName>
+                    <appendAssemblyId>false</appendAssemblyId>
+                    <archive>
+                        <manifest>
+                            <mainClass>io.amient.kafka.metrics.StreamingReporter</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <pluginRepositories>
         <pluginRepository>

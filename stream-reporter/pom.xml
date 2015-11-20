@@ -9,12 +9,18 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>yammer-reporter</artifactId>
+    <artifactId>stream-reporter</artifactId>
 
     <dependencies>
         <dependency>
-            <groupId>io.amient.kafka.metrics</groupId>
-            <artifactId>metrics-producer</artifactId>
+            <groupId>com.yammer.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_${scala.minor.version}</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
