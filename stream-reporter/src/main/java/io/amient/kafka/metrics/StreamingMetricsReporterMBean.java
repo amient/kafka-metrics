@@ -19,20 +19,6 @@
 
 package io.amient.kafka.metrics;
 
-import kafka.metrics.KafkaMetricsConfig;
-import kafka.utils.VerifiableProperties;
+import kafka.metrics.KafkaMetricsReporterMBean;
 
-public class StreamingKafkaMetricsConfig extends KafkaMetricsConfig {
-
-    public final String brokerId;
-    public final int brokerPort;
-    public final String topic;
-
-    public StreamingKafkaMetricsConfig(VerifiableProperties props) {
-        super(props);
-        this.brokerId = props.getString("broker.id");
-        this.brokerPort = props.getInt("port", 9092);
-        this.topic = props.getString("kafka.metrics.reporters.StreamingReporter.topic", "metrics");
-    }
-
-}
+public interface StreamingMetricsReporterMBean extends KafkaMetricsReporterMBean {}

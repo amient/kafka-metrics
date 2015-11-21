@@ -19,40 +19,46 @@
 
 package io.amient.kafka.metrics;
 
+import com.google.common.base.Strings;
 import com.yammer.metrics.core.*;
 import com.yammer.metrics.reporting.AbstractPollingReporter;
-import kafka.javaapi.producer.Producer;
-import kafka.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public class StreamingReporter extends AbstractPollingReporter implements MetricProcessor<Producer> {
+public class StreamingReporter extends AbstractPollingReporter implements MetricProcessor<Long> {
 
-    private final StreamingKafkaMetricsConfig metricsConfig;
-    private final Producer producer;
-    private final MetricPredicate predicate = MetricPredicate.ALL;
+    static final String CONFIG_REPORTER_HOST = "kafka.metrics.StreamingReporter.host";
+    static final String CONFIG_REPORTER_SERVICE = "kafka.metrics.StreamingReporter.service";
+    static final String CONFIG_BOOTSTRAP_SERVERS = "kafka.metrics.StreamingReporter.bootstrap.servers";
+    static final String CONFIG_SCHEMA_REGISTRY_URL = "kafka.metrics.StreamingReporter.schema.registry.url";
 
-    public StreamingReporter(MetricsRegistry metricsRegistry, final StreamingKafkaMetricsConfig metricsConfig) {
+    private final MeasurementPublisher publisher;
+    private final String host;
+    private final String service;
+    private final Clock clock;
+
+    public StreamingReporter(MetricsRegistry metricsRegistry, Properties config) {
         super(metricsRegistry, "streaming-reporter");
-        this.metricsConfig = metricsConfig;
-
-        Properties producerConfig = new Properties();
-
-        this.producer = new Producer(new ProducerConfig(new Properties() {{
-            put("metadata.broker.list", "localhost:" + metricsConfig.brokerPort);
-        }}));
-
+        this.host = config.getProperty(CONFIG_REPORTER_HOST);
+        this.service = config.getProperty(CONFIG_REPORTER_SERVICE);
+        this.clock = Clock.defaultClock();
+        this.publisher = new InfluxDbPublisher(config);
     }
 
-    //    private final Clock clock = Clock.defaultClock();
-//    private Long startTime = 0L;
+
+    private void send(Measurement m) {
+        publisher.publish(m);
+    }
+
+
     @Override
-    public void start(long period, TimeUnit unit) {
-//        this.startTime = clock.time();
-        super.start(period, unit);
+    public void start(long timeout, TimeUnit unit) {
+        super.start(timeout, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -60,18 +66,19 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         try {
             super.shutdown();
         } finally {
-            if (producer != null) producer.close();
+            if (publisher != null) publisher.close();
         }
     }
 
     public void run() {
+        final Long time = clock.time();
         final Set<Map.Entry<MetricName, Metric>> metrics = getMetricsRegistry().allMetrics().entrySet();
         try {
             for (Map.Entry<MetricName, Metric> entry : metrics) {
                 final MetricName metricName = entry.getKey();
                 final Metric metric = entry.getValue();
-                if (predicate.matches(metricName, metric)) {
-                    metric.processWith(this, entry.getKey(), producer);
+                if (MetricPredicate.ALL.matches(metricName, metric)) {
+                    metric.processWith(this, entry.getKey(), time);
                 }
             }
         } catch (Exception e) {
@@ -79,7 +86,55 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         }
     }
 
-    public void processGauge(MetricName name, Gauge<?> gauge, Producer producer) {
+    private double convert(double value, TimeUnit unit) {
+        switch (unit) {
+            case NANOSECONDS:
+                return value * 1000000000.0;
+            case MICROSECONDS:
+                return value * 1000000.0;
+            case MILLISECONDS:
+                return value * 1000.0;
+            case MINUTES:
+                return value / 60.0;
+            case HOURS:
+                return value / 3600.0;
+            case DAYS:
+                return value / 86400.0;
+            default:
+                return value;
+        }
+    }
+
+    public void processMeter(MetricName name, Metered meter, Long timestamp) {
+
+        Measurement measurement = new Measurement();
+        measurement.setTimestamp(timestamp);
+        measurement.setName(name.getName());
+        if (!Strings.isNullOrEmpty(name.getGroup())) measurement.setGroup(name.getGroup());
+        if (!Strings.isNullOrEmpty(name.getType())) measurement.setType(name.getType());
+        if (!Strings.isNullOrEmpty(name.getScope())) measurement.setScope(name.getScope());
+        if (!Strings.isNullOrEmpty(host)) measurement.setHost(host);
+        measurement.setFields(
+                "count=" + convert(meter.count(), meter.rateUnit()) + ","
+                        + "mean-rate-per-sec=" + meter.meanRate() + ","
+                        + "15-minute-rate-per-sec=" + meter.fifteenMinuteRate() + ","
+                        + "5-minute-rate-per-sec=" + meter.fiveMinuteRate() + ","
+                        + "1-minute-rate-per-sec=" + meter.oneMinuteRate() + ","
+                        + "1-minute-rate-per-sec=" + meter.oneMinuteRate() + ","
+        );
+        send(measurement);
+    }
+
+    public void processCounter(MetricName name, Counter counter, Long timestamp) {
+//        String key = name.getGroup();
+//        MetricMessage value = new MetricMessage();
+//        value.setGroup(name.getGroup());
+//        value.setType(name.getType());
+//        value.setName(name.getName());
+    }
+
+    public void processGauge(MetricName name, Gauge<?> gauge, Long timestamp) {
+
 //        final String header = "# time,finalue";
 //        final Producer producer = context.getProducer();
 //        final String topic = prefix + "-metrics-gauge";
@@ -87,23 +142,7 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
 //        send(producer, header, topic, message);
     }
 
-    public void processCounter(MetricName name, Counter counter, Producer producer) {
-//        final String header = "# time,count";
-//        final Producer producer = context.getProducer();
-//        final String topic = prefix + "-metrics-counter";
-//        final String message = valueOf(counter.count());
-//        send(producer, header, topic, message);
-    }
-
-    public void processMeter(MetricName name, Metered meter, Producer producer) {
-//        final String header = "# name,time,count,1 min rate,mean rate,5 min rate,15 min rate";
-//        final String topic = prefix + "-metrics-meter";
-//        final String message = name.getName() + "," + valueOf(meter.count()) + ',' + meter.oneMinuteRate() + ',' + meter.meanRate() + ','
-//                + meter.fiveMinuteRate() + ',' + meter.fifteenMinuteRate();
-//        send(producer, header, topic, message);
-    }
-
-    public void processHistogram(MetricName name, Histogram histogram, Producer producer) {
+    public void processHistogram(MetricName name, Histogram histogram, Long timestamp) {
 //        final String header = "# time,min,max,mean,median,stddev,95%,99%,99.9%";
 //        final Producer producer = context.getProducer();
 //        final Snapshot snapshot = histogram.getSnapshot();
@@ -114,7 +153,7 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
 //        send(producer, header, topic, message);
     }
 
-    public void processTimer(MetricName name, Timer timer, Producer producer) {
+    public void processTimer(MetricName name, Timer timer, Long nanotime) {
 //        final String header = "# time,min,max,mean,median,stddev,95%,99%,99.9%";
 //        final Producer producer = context.getProducer();
 //        final Snapshot snapshot = timer.getSnapshot();
@@ -124,15 +163,6 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
 //        send(producer, header, topic, message);
     }
 
-
-//    private void send(Producer producer, String header, String topic, String message) {
-//        final Long time = TimeUnit.MILLISECONDS.toSeconds(clock.time() - startTime);
-//        try {
-//            producer.send(new KeyedMessage(topic, format("%s\n%d,%s", header, time, message).getBytes("UTF-8")));
-//        } catch (UnsupportedEncodingException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
 }
 
 

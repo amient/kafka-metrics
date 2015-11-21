@@ -21,21 +21,19 @@ package io.amient.kafka.metrics;
 
 import com.yammer.metrics.Metrics;
 import kafka.metrics.KafkaMetricsReporter;
-import kafka.metrics.KafkaMetricsReporterMBean;
 import kafka.utils.VerifiableProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-
-interface StreamingMetricsReporterMBean extends KafkaMetricsReporterMBean {}
 
 public class StreamingMetricsReporter implements KafkaMetricsReporter, StreamingMetricsReporterMBean {
     private static final Logger log = LoggerFactory.getLogger(StreamingMetricsReporter.class);
-    private StreamingKafkaMetricsConfig metricsConfig;
     private StreamingReporter underlying;
     volatile private boolean running;
     volatile private boolean initialized;
+    private Properties config;
 
     public String getMBeanName() {
         return "kafka:type=io.amient.kafka.metrics.StreamingMetricsReporter";
@@ -43,10 +41,12 @@ public class StreamingMetricsReporter implements KafkaMetricsReporter, Streaming
 
     synchronized public void init(VerifiableProperties kafkaConfig) {
         if (!initialized) {
-            this.metricsConfig = new StreamingKafkaMetricsConfig(kafkaConfig);
-            this.underlying = new StreamingReporter(Metrics.defaultRegistry(), metricsConfig);
+            this.config = kafkaConfig.props();
+            this.config.put(StreamingReporter.CONFIG_REPORTER_SERVICE, "kafka");
+            this.config.put(StreamingReporter.CONFIG_BOOTSTRAP_SERVERS, "localhost:" + kafkaConfig.getInt("port", 9092));
+            this.underlying = new StreamingReporter(Metrics.defaultRegistry(), this.config);
             initialized = true;
-            startReporter(metricsConfig.pollingIntervalSecs());
+            startReporter(10);
         }
     }
 
@@ -54,7 +54,7 @@ public class StreamingMetricsReporter implements KafkaMetricsReporter, Streaming
         if (initialized && !running) {
             underlying.start(pollingPeriodSecs, TimeUnit.SECONDS);
             running = true;
-            log.info(String.format("Started Kafka Topic metrics reporter with polling period %d seconds", pollingPeriodSecs));
+            log.info("Started StreamingReporter instance with polling period " + pollingPeriodSecs + "  seconds");
         }
     }
 
@@ -62,8 +62,8 @@ public class StreamingMetricsReporter implements KafkaMetricsReporter, Streaming
         if (initialized && running) {
             underlying.shutdown();
             running = false;
-            log.info("Stopped Kafka Topic metrics reporter");
-            this.underlying = new StreamingReporter(Metrics.defaultRegistry(), metricsConfig);
+            log.info("Stopped StreamingReporter instance");
+            this.underlying = new StreamingReporter(Metrics.defaultRegistry(), config);
         }
     }
 }

@@ -1,0 +1,35 @@
+{
+  "namespace": "io.amient.kafka.metrics",
+  "type": "record",
+  "name": "Measurement",
+  "fields": [
+    {
+        "name": "name",
+        "type": "string"
+    },
+    {
+        "name": "group",
+        "type": "string"
+    },
+    {
+        "name": "type",
+        "type": "string"
+    },
+    {
+        "name": "scope",
+        "type": "string"
+    },
+    {
+        "name": "host",
+        "type": "string"
+    },
+    {
+        "name": "fields",
+        "type": "string"
+    },
+    {
+        "name": "timestamp",
+        "type": "long"
+    }
+  ]
+}
