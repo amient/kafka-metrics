@@ -57,11 +57,11 @@
                 <artifactId>avro</artifactId>
                 <version>${avro.version}</version>
             </dependency>
-            <dependency>
-                <groupId>io.confluent</groupId>
-                <artifactId>kafka-avro-serializer</artifactId>
-                <version>${confluent.version}</version>
-            </dependency>
+            <!--<dependency>-->
+                <!--<groupId>io.confluent</groupId>-->
+                <!--<artifactId>kafka-avro-serializer</artifactId>-->
+                <!--<version>${confluent.version}</version>-->
+            <!--</dependency>-->
             <dependency>
                 <groupId>com.yammer.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
@@ -76,16 +76,19 @@
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka_${scala.minor.version}</artifactId>
                 <version>${kafka.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>1.7.6</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-log4j12</artifactId>
                 <version>1.7.6</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>junit</groupId>

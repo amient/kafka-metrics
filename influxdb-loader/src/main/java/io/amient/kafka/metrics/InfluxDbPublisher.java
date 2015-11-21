@@ -44,20 +44,16 @@ public class InfluxDbPublisher implements MeasurementPublisher {
         Point.Builder builder = Point.measurement(m.getName().toString()).time(m.getTimestamp(), TimeUnit.MILLISECONDS);
         builder.tag("service", m.getService().toString());
         builder.tag("host", m.getHost().toString());
-        if (m.getGroup() != null) builder.tag("group", m.getGroup().toString());
-        if (m.getType() != null) builder.tag("type", m.getType().toString());
-        if (m.getScope() != null) builder.tag("scope", m.getScope().toString());
-
-        for (String f : m.getFields().toString().split(",")) {
-            String[] nv = f.split("=");
-            builder.field(nv[0], Double.parseDouble(nv[1]));
+        for(java.util.Map.Entry<CharSequence, CharSequence> tag: m.getTags().entrySet()) {
+            builder.tag(tag.getKey().toString(), tag.getValue().toString());
         }
-
+        for(java.util.Map.Entry<CharSequence, Double> fiekd: m.getFields().entrySet()) {
+            builder.field(fiekd.getKey().toString(), fiekd.getValue());
+        }
         influxDB.write(dbName, "default", builder.build());
 
     }
-
-    @Override
+    
     public void close() {
 
     }

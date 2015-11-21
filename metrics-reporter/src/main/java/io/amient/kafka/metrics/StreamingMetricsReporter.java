@@ -46,7 +46,7 @@ public class StreamingMetricsReporter implements KafkaMetricsReporter, Streaming
             this.config.put(StreamingReporter.CONFIG_BOOTSTRAP_SERVERS, "localhost:" + kafkaConfig.getInt("port", 9092));
             this.underlying = new StreamingReporter(Metrics.defaultRegistry(), this.config);
             initialized = true;
-            startReporter(10);
+            startReporter(kafkaConfig.getInt(StreamingReporter.CONFIG_POLLING_INTERVAL_S, 10));
         }
     }
 

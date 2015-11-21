@@ -22,6 +22,7 @@ package io.amient.kafka.metrics;
 import com.yammer.metrics.core.*;
 import com.yammer.metrics.reporting.AbstractPollingReporter;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -33,6 +34,7 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
     static final String CONFIG_REPORTER_SERVICE = "kafka.metrics.StreamingReporter.service";
     static final String CONFIG_BOOTSTRAP_SERVERS = "kafka.metrics.StreamingReporter.bootstrap.servers";
     static final String CONFIG_SCHEMA_REGISTRY_URL = "kafka.metrics.StreamingReporter.schema.registry.url";
+    static final String CONFIG_POLLING_INTERVAL_S = "kafka.metrics.StreamingReporter.polling.interval.s";
 
     private final MeasurementPublisher publisher;
     private final String host;
@@ -48,14 +50,9 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
     }
 
 
-    private void send(Measurement m) {
-        publisher.publish(m);
-    }
-
-
     @Override
     public void start(long timeout, TimeUnit unit) {
-        super.start(timeout, TimeUnit.MILLISECONDS);
+        super.start(timeout, unit);
     }
 
     @Override
@@ -108,23 +105,22 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         measurement.setHost(host);
         measurement.setService(service);
         measurement.setName(name.getName());
-        if (name.getGroup() != null) measurement.setGroup(name.getGroup());
-        if (name.getType() != null) measurement.setType(name.getType());
-        if (name.getScope() != null) measurement.setScope(name.getScope());
+        measurement.setTags(new HashMap<CharSequence, CharSequence>());
+        measurement.setFields(new HashMap<CharSequence, Double>());
+        if (name.getGroup() != null && !name.getGroup().isEmpty()) measurement.getTags().put("group", name.getGroup());
+        if (name.getType() != null && !name.getType().isEmpty()) measurement.getTags().put("type", name.getType());
+        if (name.getScope() != null && !name.getScope().isEmpty()) measurement.getTags().put("scope", name.getScope());
         return measurement;
     }
 
     public void processMeter(MetricName name, Metered meter, Long timestamp) {
         Measurement measurement = createMeasurement(name, timestamp);
-        measurement.setFields(
-            "count=" + convert(meter.count(), meter.rateUnit()) + ","
-            + "mean-rate-per-sec=" + meter.meanRate() + ","
-            + "15-minute-rate-per-sec=" + meter.fifteenMinuteRate() + ","
-            + "5-minute-rate-per-sec=" + meter.fiveMinuteRate() + ","
-            + "1-minute-rate-per-sec=" + meter.oneMinuteRate() + ","
-            + "1-minute-rate-per-sec=" + meter.oneMinuteRate() + ","
-        );
-        send(measurement);
+        measurement.getFields().put("count", Double.valueOf(meter.count()));
+        measurement.getFields().put("mean-rate-per-sec", convert(meter.meanRate(), meter.rateUnit()));
+        measurement.getFields().put("15-minute-rate-per-sec", convert(meter.fifteenMinuteRate(), meter.rateUnit()));
+        measurement.getFields().put("5-minute-rate-per-sec", convert(meter.fiveMinuteRate(), meter.rateUnit()));
+        measurement.getFields().put("1-minute-rate-per-sec", convert(meter.oneMinuteRate(), meter.rateUnit()));
+        publisher.publish(measurement);
     }
 
     public void processCounter(MetricName name, Counter counter, Long timestamp) {

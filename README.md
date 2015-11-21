@@ -17,16 +17,14 @@ add following config to the server.properties for kafka broker
 ```
 kafka.metrics.reporters=io.amient.kafka.metrics.StreamingMetricsReporter
 kafka.metrics.StreamingReporter.host=my.example.host
-kafka.metrics.StreamingReporter.schema.registry.url=http://localhost:8081
+kafka.metrics.StreamingReporter.polling.interval.s=10
     
 ```
 
 after starting the broker with this configuration you can inspect the topic 'metrics' using kafka console consumer:
 
 ```
-./bin/kafka-console-consumer.sh --zookeeper localhost --topic metrics \
-    --property schema.registry.url=http://localhost:8081 \
-    --formatter io.confluent.kafka.formatter.AvroMessageFormatter
+./bin/kafka-console-consumer.sh --zookeeper localhost --topic _metrics --formatter io.amient.kafka.metrics.MeasurementFormatter
 ```
 
 # Usage in Kafka Prism
@@ -34,15 +32,15 @@ after starting the broker with this configuration you can inspect the topic 'met
 add the following properties to the producer config
 
 ```
-metric.reporters=io.amient.kafka.metrics.StreamingMetricsReporter
-metric.reporters.StreamingReporter.topic=metrics
+...
 ```
 
 
 # Development
 
+- Versioining of Measurement message format
+- Decoder and Formatter
 - Make 2 packaged jars - one for running within existing kafka apps, one standalone for application metrics.
-- Make Schema Registry Optional - that requires making the avro-schema built-in to the packaged version and providing formatter
 - Draw design doc with clear docker image boundaries
     - docker image for Kafka Metrics Instance:
         - Go 1.4

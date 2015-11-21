@@ -4,19 +4,11 @@
   "name": "Measurement",
   "fields": [
     {
+        "name": "timestamp",
+        "type": "long"
+    },
+    {
         "name": "name",
-        "type": "string"
-    },
-    {
-        "name": "group",
-        "type": "string"
-    },
-    {
-        "name": "type",
-        "type": "string"
-    },
-    {
-        "name": "scope",
         "type": "string"
     },
     {
@@ -28,12 +20,12 @@
         "type": "string"
     },
     {
-        "name": "fields",
-        "type": "string"
+        "name": "tags",
+        "type": {"type" : "map", "values" : "string"}
     },
     {
-        "name": "timestamp",
-        "type": "long"
+        "name": "fields",
+        "type": {"type" : "map", "values" : "double"}
     }
   ]
 }
