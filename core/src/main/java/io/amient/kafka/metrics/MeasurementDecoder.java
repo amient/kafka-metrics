@@ -19,5 +19,18 @@
 
 package io.amient.kafka.metrics;
 
-public class MeasurementDecoder {
+import kafka.serializer.Decoder;
+import kafka.utils.VerifiableProperties;
+
+public class MeasurementDecoder extends MeasurementDeserializer implements Decoder<MeasurementV1> {
+
+    public MeasurementDecoder(VerifiableProperties props) {
+    }
+
+    @Override
+    public MeasurementV1 fromBytes(byte[] bytes) {
+        return deserialize(bytes);
+    }
+
 }
+

@@ -16,7 +16,6 @@
     <url>https://github.com/amient/kafka-metrics</url>
 
     <properties>
-        <confluent.version>1.0.1</confluent.version>
         <influxdb.client.version>2.0</influxdb.client.version>
         <metrics.version>2.2.0</metrics.version>
         <kafka.version>${project.version}</kafka.version>
@@ -32,13 +31,6 @@
         <module>influxdb-loader</module>
         <module>core</module>
     </modules>
-
-    <repositories>
-        <repository>
-            <id>confluent</id>
-            <url>http://packages.confluent.io/maven/</url>
-        </repository>
-    </repositories>
 
     <dependencyManagement>
         <dependencies>
@@ -57,11 +49,6 @@
                 <artifactId>avro</artifactId>
                 <version>${avro.version}</version>
             </dependency>
-            <!--<dependency>-->
-                <!--<groupId>io.confluent</groupId>-->
-                <!--<artifactId>kafka-avro-serializer</artifactId>-->
-                <!--<version>${confluent.version}</version>-->
-            <!--</dependency>-->
             <dependency>
                 <groupId>com.yammer.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
@@ -76,19 +63,16 @@
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka_${scala.minor.version}</artifactId>
                 <version>${kafka.version}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>1.7.6</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-log4j12</artifactId>
                 <version>1.7.6</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>junit</groupId>
@@ -98,14 +82,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>scala-tools.org</id>
-            <name>Scala-tools Maven2 Repository</name>
-            <url>http://scala-tools.org/repo-releases</url>
-        </pluginRepository>
-    </pluginRepositories>
 
 </project>
 

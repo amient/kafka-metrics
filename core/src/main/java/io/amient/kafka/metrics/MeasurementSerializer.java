@@ -30,23 +30,24 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
-public class MeasurementSerializer implements Serializer<Measurement> {
+public class MeasurementSerializer implements Serializer<MeasurementV1> {
 
+    private final static Byte VERSION = 1;
     private final EncoderFactory encoderFactory = EncoderFactory.get();
 
     public void configure(Map<String, ?> map, boolean b) {
 
     }
 
-    public byte[] serialize(String s, Measurement measurement) {
+    public byte[] serialize(String s, MeasurementV1 measurement) {
 
         try {
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+            byteStream.write(VERSION);
             BinaryEncoder encoder = encoderFactory.directBinaryEncoder(byteStream, null);
-            DatumWriter<Object> writer = new SpecificDatumWriter<Object>(measurement.getSchema());
+            DatumWriter<MeasurementV1> writer = new SpecificDatumWriter<MeasurementV1>(measurement.getSchema());
             writer.write(measurement, encoder);
             encoder.flush();
-            DatumWriter<Measurement> userDatumWriter = new SpecificDatumWriter<Measurement>(Measurement.class);
             byte[] result = byteStream.toByteArray();
             byteStream.close();
             return result;

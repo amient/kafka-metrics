@@ -19,5 +19,60 @@
 
 package io.amient.kafka.metrics;
 
-public class MeasurementFormatter {
+import kafka.tools.MessageFormatter;
+import org.apache.kafka.common.errors.SerializationException;
+
+import java.io.PrintStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Properties;
+
+public class MeasurementFormatter extends MeasurementDeserializer implements MessageFormatter {
+
+    private static final DateFormat date = new SimpleDateFormat("dd/MM/yyyy G 'at' HH:mm:ss z");
+
+    @Override
+    public void writeTo(byte[] key, byte[] value, PrintStream output) {
+        try {
+            MeasurementV1 measurement = deserialize(value);
+            writeTo(measurement, output);
+        } catch (SerializationException e) {
+            output.append(e.getMessage());
+            output.append("\n\n");
+        }
+    }
+
+    public void writeTo(MeasurementV1 measurement, PrintStream output) {
+        output.append(measurement.getName());
+        output.append(",host=");
+        output.append(measurement.getHost());
+        output.append(",service=");
+        output.append(measurement.getService());
+        for (java.util.Map.Entry<CharSequence, CharSequence> tag : measurement.getTags().entrySet()) {
+            output.append(",");
+            output.append(tag.getKey());
+            output.append("=");
+            output.append(tag.getValue());
+        }
+        output.append(" [" + date.format(new Date(measurement.getTimestamp())) + "] ");
+        output.append("\n");
+        for (java.util.Map.Entry<CharSequence, Double> field : measurement.getFields().entrySet()) {
+            output.append(field.getKey());
+            output.append("=");
+            output.append(field.getValue().toString());
+            output.append("\t");
+        }
+        output.append("\n\n");
+    }
+
+    @Override
+    public void init(Properties props) {
+
+    }
+
+    @Override
+    public void close() {
+
+    }
 }

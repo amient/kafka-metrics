@@ -26,9 +26,8 @@ import java.util.HashMap;
 
 public class MeasurementFactory {
 
-    public static Measurement createMeasurement(String host, String service, MetricName name, Long timestamp) {
-        Measurement measurement = new Measurement();
-        measurement.setVersion(1);
+    public static MeasurementV1 createMeasurement(String host, String service, MetricName name, Long timestamp) {
+        MeasurementV1 measurement = new MeasurementV1();
         measurement.setTimestamp(timestamp);
         measurement.setHost(host);
         measurement.setService(service);

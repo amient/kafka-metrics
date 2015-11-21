@@ -28,19 +28,24 @@ import java.util.concurrent.TimeUnit;
 
 public class InfluxDbPublisher implements MeasurementPublisher {
 
+    static final String COFNIG_INFLUXDB_DATABASE = "kafka.metrics.influxdb.database";
+    static final String COFNIG_INFLUXDB_URL = "kafka.metrics.influxdb.url";
+    static final String COFNIG_INFLUXDB_USERNAME = "kafka.metrics.influxdb.username";
+    static final String COFNIG_INFLUXDB_PASSWORD = "kafka.metrics.influxdb.password";
     final private InfluxDB influxDB;
     final private String dbName;
     final private String address;
 
     public InfluxDbPublisher(Properties config) {
-        this.dbName = "metrics";
-        this.address = "http://localhost:8086";
-        influxDB = InfluxDBFactory.connect(address, "root", "root");
-        //influxDB.createDatabase(dbName);
-//        influxDB.enableBatch(2000, 100, TimeUnit.MILLISECONDS);
+        this.dbName = config.getProperty(COFNIG_INFLUXDB_DATABASE, "metrics");
+        this.address = config.getProperty(COFNIG_INFLUXDB_URL, "http://localhost:8086");
+        String username = config.getProperty(COFNIG_INFLUXDB_USERNAME, "root");
+        String password = config.getProperty(COFNIG_INFLUXDB_PASSWORD, "root");
+        influxDB = InfluxDBFactory.connect(address, username, password);
+        influxDB.enableBatch(5000, 1000, TimeUnit.MILLISECONDS);
     }
 
-    public void publish(Measurement m) {
+    public void publish(MeasurementV1 m) {
         Point.Builder builder = Point.measurement(m.getName().toString()).time(m.getTimestamp(), TimeUnit.MILLISECONDS);
         builder.tag("service", m.getService().toString());
         builder.tag("host", m.getHost().toString());
@@ -53,7 +58,7 @@ public class InfluxDbPublisher implements MeasurementPublisher {
         influxDB.write(dbName, "default", builder.build());
 
     }
-    
+
     public void close() {
 
     }

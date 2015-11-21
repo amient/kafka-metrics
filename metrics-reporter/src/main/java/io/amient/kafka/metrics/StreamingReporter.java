@@ -33,7 +33,6 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
     static final String CONFIG_REPORTER_HOST = "kafka.metrics.StreamingReporter.host";
     static final String CONFIG_REPORTER_SERVICE = "kafka.metrics.StreamingReporter.service";
     static final String CONFIG_BOOTSTRAP_SERVERS = "kafka.metrics.StreamingReporter.bootstrap.servers";
-    static final String CONFIG_SCHEMA_REGISTRY_URL = "kafka.metrics.StreamingReporter.schema.registry.url";
     static final String CONFIG_POLLING_INTERVAL_S = "kafka.metrics.StreamingReporter.polling.interval.s";
 
     private final MeasurementPublisher publisher;
@@ -100,7 +99,7 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
     }
 
     public void processMeter(MetricName name, Metered meter, Long timestamp) {
-        Measurement measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
+        MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
         measurement.getFields().put("count", Double.valueOf(meter.count()));
         measurement.getFields().put("mean-rate-per-sec", convert(meter.meanRate(), meter.rateUnit()));
         measurement.getFields().put("15-minute-rate-per-sec", convert(meter.fifteenMinuteRate(), meter.rateUnit()));

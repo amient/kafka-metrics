@@ -1,12 +1,8 @@
 {
   "namespace": "io.amient.kafka.metrics",
   "type": "record",
-  "name": "Measurement",
+  "name": "MeasurementV1",
   "fields": [
-    {
-        "name": "version",
-        "type": "int"
-    },
     {
         "name": "timestamp",
         "type": "long"

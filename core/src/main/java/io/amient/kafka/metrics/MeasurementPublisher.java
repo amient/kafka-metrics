@@ -21,7 +21,7 @@ package io.amient.kafka.metrics;
 
 public interface MeasurementPublisher {
 
-    void publish(Measurement m);
+    void publish(MeasurementV1 m);
 
     void close();
 

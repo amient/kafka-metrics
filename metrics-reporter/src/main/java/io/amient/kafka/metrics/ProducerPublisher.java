@@ -38,13 +38,12 @@ public class ProducerPublisher implements MeasurementPublisher {
         this.producer = new KafkaProducer<String, Object>(new Properties() {{
             put("bootstrap.servers", config.getProperty(StreamingReporter.CONFIG_BOOTSTRAP_SERVERS));
             put("key.serializer", org.apache.kafka.common.serialization.StringSerializer.class);
-//            put("value.serializer", io.confluent.kafka.serializers.KafkaAvroSerializer.class);
             put("value.serializer", io.amient.kafka.metrics.MeasurementSerializer.class);
-            put("schema.registry.url", config.getProperty(StreamingReporter.CONFIG_SCHEMA_REGISTRY_URL));
         }});
     }
+
     @Override
-    public void publish(Measurement m) {
+    public void publish(MeasurementV1 m) {
         producer.send(new ProducerRecord<String, Object>(topic, m.getHost().toString(), m));
     }
 
