@@ -42,7 +42,7 @@ public class StreamingMetricsReporter implements KafkaMetricsReporter, Streaming
     synchronized public void init(VerifiableProperties kafkaConfig) {
         if (!initialized) {
             this.config = kafkaConfig.props();
-            this.config.put(StreamingReporter.CONFIG_REPORTER_SERVICE, "kafka");
+            this.config.put(StreamingReporter.CONFIG_REPORTER_SERVICE, "kafka-broker-" + kafkaConfig.getInt("broker.id"));
             this.config.put(StreamingReporter.CONFIG_BOOTSTRAP_SERVERS, "localhost:" + kafkaConfig.getInt("port", 9092));
             this.underlying = new StreamingReporter(Metrics.defaultRegistry(), this.config);
             initialized = true;

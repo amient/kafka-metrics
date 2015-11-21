@@ -19,11 +19,8 @@
 
 package io.amient.kafka.metrics;
 
-import com.google.common.base.Strings;
 import com.yammer.metrics.core.*;
 import com.yammer.metrics.reporting.AbstractPollingReporter;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 
 import java.util.Map;
 import java.util.Properties;
@@ -47,7 +44,7 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         this.host = config.getProperty(CONFIG_REPORTER_HOST);
         this.service = config.getProperty(CONFIG_REPORTER_SERVICE);
         this.clock = Clock.defaultClock();
-        this.publisher = new InfluxDbPublisher(config);
+        this.publisher = new ProducerPublisher(config);
     }
 
 
@@ -105,22 +102,27 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         }
     }
 
-    public void processMeter(MetricName name, Metered meter, Long timestamp) {
-
+    private Measurement createMeasurement(MetricName name, Long timestamp) {
         Measurement measurement = new Measurement();
         measurement.setTimestamp(timestamp);
+        measurement.setHost(host);
+        measurement.setService(service);
         measurement.setName(name.getName());
-        if (!Strings.isNullOrEmpty(name.getGroup())) measurement.setGroup(name.getGroup());
-        if (!Strings.isNullOrEmpty(name.getType())) measurement.setType(name.getType());
-        if (!Strings.isNullOrEmpty(name.getScope())) measurement.setScope(name.getScope());
-        if (!Strings.isNullOrEmpty(host)) measurement.setHost(host);
+        if (name.getGroup() != null) measurement.setGroup(name.getGroup());
+        if (name.getType() != null) measurement.setType(name.getType());
+        if (name.getScope() != null) measurement.setScope(name.getScope());
+        return measurement;
+    }
+
+    public void processMeter(MetricName name, Metered meter, Long timestamp) {
+        Measurement measurement = createMeasurement(name, timestamp);
         measurement.setFields(
-                "count=" + convert(meter.count(), meter.rateUnit()) + ","
-                        + "mean-rate-per-sec=" + meter.meanRate() + ","
-                        + "15-minute-rate-per-sec=" + meter.fifteenMinuteRate() + ","
-                        + "5-minute-rate-per-sec=" + meter.fiveMinuteRate() + ","
-                        + "1-minute-rate-per-sec=" + meter.oneMinuteRate() + ","
-                        + "1-minute-rate-per-sec=" + meter.oneMinuteRate() + ","
+            "count=" + convert(meter.count(), meter.rateUnit()) + ","
+            + "mean-rate-per-sec=" + meter.meanRate() + ","
+            + "15-minute-rate-per-sec=" + meter.fifteenMinuteRate() + ","
+            + "5-minute-rate-per-sec=" + meter.fiveMinuteRate() + ","
+            + "1-minute-rate-per-sec=" + meter.oneMinuteRate() + ","
+            + "1-minute-rate-per-sec=" + meter.oneMinuteRate() + ","
         );
         send(measurement);
     }

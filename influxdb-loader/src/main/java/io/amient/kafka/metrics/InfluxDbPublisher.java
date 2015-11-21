@@ -42,7 +42,8 @@ public class InfluxDbPublisher implements MeasurementPublisher {
 
     public void publish(Measurement m) {
         Point.Builder builder = Point.measurement(m.getName().toString()).time(m.getTimestamp(), TimeUnit.MILLISECONDS);
-        if (m.getHost() != null) builder.tag("host", m.getHost().toString());
+        builder.tag("service", m.getService().toString());
+        builder.tag("host", m.getHost().toString());
         if (m.getGroup() != null) builder.tag("group", m.getGroup().toString());
         if (m.getType() != null) builder.tag("type", m.getType().toString());
         if (m.getScope() != null) builder.tag("scope", m.getScope().toString());

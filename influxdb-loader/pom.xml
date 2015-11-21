@@ -12,5 +12,15 @@
     <groupId>io.amient.kafka.metrics</groupId>
     <artifactId>influxdb-loader</artifactId>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.amient.kafka.metrics</groupId>
+            <artifactId>core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.influxdb</groupId>
+            <artifactId>influxdb-java</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>

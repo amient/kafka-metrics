@@ -28,8 +28,9 @@
     </properties>
 
     <modules>
-        <module>stream-reporter</module>
+        <module>metrics-reporter</module>
         <module>influxdb-loader</module>
+        <module>core</module>
     </modules>
 
     <repositories>
@@ -41,6 +42,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>io.amient.kafka.metrics</groupId>
+                <artifactId>core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.influxdb</groupId>
                 <artifactId>influxdb-java</artifactId>

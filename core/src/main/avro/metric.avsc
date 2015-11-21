@@ -24,6 +24,10 @@
         "type": "string"
     },
     {
+        "name": "service",
+        "type": "string"
+    },
+    {
         "name": "fields",
         "type": "string"
     },
