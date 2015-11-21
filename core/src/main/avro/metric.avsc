@@ -4,6 +4,10 @@
   "name": "Measurement",
   "fields": [
     {
+        "name": "version",
+        "type": "int"
+    },
+    {
         "name": "timestamp",
         "type": "long"
     },

@@ -5,40 +5,39 @@ can be used by kafka broker, kafka producer or consumer and other applications a
 library.
  
 
-# Usage in Kafka Broker
+# Usage
+
+## Usage in Kafka Broker and Kafka Prism
 
 ```
 mvn clean package
 cp stream-reporter/target/stream-reporter-<kafka-version>.jar $KAFKA_HOME/libs/
 ```
 
-add following config to the server.properties for kafka broker 
+add following properties to config file for kafka broker, kafka prism.  
 
 ```
 kafka.metrics.reporters=io.amient.kafka.metrics.StreamingMetricsReporter
 kafka.metrics.StreamingReporter.host=my.example.host
 kafka.metrics.StreamingReporter.polling.interval.s=10
-    
 ```
 
-after starting the broker with this configuration you can inspect the topic 'metrics' using kafka console consumer:
+## Usage in producer/consumer applications 
+
+...
+
+
+## Inspecting the metrics topic  
+
+Using kafka console consumer with a formatter for kafka-metrics:
 
 ```
 ./bin/kafka-console-consumer.sh --zookeeper localhost --topic _metrics --formatter io.amient.kafka.metrics.MeasurementFormatter
 ```
 
-# Usage in Kafka Prism
-
-add the following properties to the producer config
-
-```
-...
-```
-
 
 # Development
 
-- Versioining of Measurement message format
 - Decoder and Formatter
 - Make 2 packaged jars - one for running within existing kafka apps, one standalone for application metrics.
 - Draw design doc with clear docker image boundaries

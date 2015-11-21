@@ -99,22 +99,8 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         }
     }
 
-    private Measurement createMeasurement(MetricName name, Long timestamp) {
-        Measurement measurement = new Measurement();
-        measurement.setTimestamp(timestamp);
-        measurement.setHost(host);
-        measurement.setService(service);
-        measurement.setName(name.getName());
-        measurement.setTags(new HashMap<CharSequence, CharSequence>());
-        measurement.setFields(new HashMap<CharSequence, Double>());
-        if (name.getGroup() != null && !name.getGroup().isEmpty()) measurement.getTags().put("group", name.getGroup());
-        if (name.getType() != null && !name.getType().isEmpty()) measurement.getTags().put("type", name.getType());
-        if (name.getScope() != null && !name.getScope().isEmpty()) measurement.getTags().put("scope", name.getScope());
-        return measurement;
-    }
-
     public void processMeter(MetricName name, Metered meter, Long timestamp) {
-        Measurement measurement = createMeasurement(name, timestamp);
+        Measurement measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
         measurement.getFields().put("count", Double.valueOf(meter.count()));
         measurement.getFields().put("mean-rate-per-sec", convert(meter.meanRate(), meter.rateUnit()));
         measurement.getFields().put("15-minute-rate-per-sec", convert(meter.fifteenMinuteRate(), meter.rateUnit()));
