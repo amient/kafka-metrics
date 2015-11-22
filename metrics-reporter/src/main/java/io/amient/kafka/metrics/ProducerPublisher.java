@@ -24,17 +24,15 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 
 import java.util.Properties;
 
-/**
- * Created by mharis on 20/11/2015.
- */
 public class ProducerPublisher implements MeasurementPublisher {
 
 
+    private static final java.lang.String CONFIG_METRICS_TOPIC = "kafka.metrics.topic";
     private final KafkaProducer producer;
     private final String topic;
 
     public ProducerPublisher(final Properties config) {
-        this.topic = config.getProperty("kafka.metrics.StreamingReporter.topic", "_metrics");
+        this.topic = config.getProperty(CONFIG_METRICS_TOPIC, "_metrics");
         this.producer = new KafkaProducer<String, Object>(new Properties() {{
             put("bootstrap.servers", config.getProperty(StreamingReporter.CONFIG_BOOTSTRAP_SERVERS));
             put("key.serializer", org.apache.kafka.common.serialization.StringSerializer.class);

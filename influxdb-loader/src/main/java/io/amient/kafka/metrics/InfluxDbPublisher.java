@@ -22,12 +22,15 @@ package io.amient.kafka.metrics;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Point;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 public class InfluxDbPublisher implements MeasurementPublisher {
 
+    static private final Logger log = LoggerFactory.getLogger(InfluxDbPublisher.class);
     static final String COFNIG_INFLUXDB_DATABASE = "kafka.metrics.influxdb.database";
     static final String COFNIG_INFLUXDB_URL = "kafka.metrics.influxdb.url";
     static final String COFNIG_INFLUXDB_USERNAME = "kafka.metrics.influxdb.username";
@@ -42,21 +45,20 @@ public class InfluxDbPublisher implements MeasurementPublisher {
         String username = config.getProperty(COFNIG_INFLUXDB_USERNAME, "root");
         String password = config.getProperty(COFNIG_INFLUXDB_PASSWORD, "root");
         influxDB = InfluxDBFactory.connect(address, username, password);
-        influxDB.enableBatch(5000, 1000, TimeUnit.MILLISECONDS);
+        influxDB.enableBatch(1000, 250, TimeUnit.MILLISECONDS);
     }
 
     public void publish(MeasurementV1 m) {
         Point.Builder builder = Point.measurement(m.getName().toString()).time(m.getTimestamp(), TimeUnit.MILLISECONDS);
         builder.tag("service", m.getService().toString());
         builder.tag("host", m.getHost().toString());
-        for(java.util.Map.Entry<CharSequence, CharSequence> tag: m.getTags().entrySet()) {
+        for (java.util.Map.Entry<CharSequence, CharSequence> tag : m.getTags().entrySet()) {
             builder.tag(tag.getKey().toString(), tag.getValue().toString());
         }
-        for(java.util.Map.Entry<CharSequence, Double> fiekd: m.getFields().entrySet()) {
+        for (java.util.Map.Entry<CharSequence, Double> fiekd : m.getFields().entrySet()) {
             builder.field(fiekd.getKey().toString(), fiekd.getValue());
         }
         influxDB.write(dbName, "default", builder.build());
-
     }
 
     public void close() {

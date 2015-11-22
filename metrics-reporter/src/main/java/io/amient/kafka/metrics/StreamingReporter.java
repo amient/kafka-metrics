@@ -29,24 +29,37 @@ import java.util.concurrent.TimeUnit;
 
 public class StreamingReporter extends AbstractPollingReporter implements MetricProcessor<Long> {
 
-    static final String CONFIG_REPORTER_HOST = "kafka.metrics.StreamingReporter.host";
-    static final String CONFIG_REPORTER_SERVICE = "kafka.metrics.StreamingReporter.service";
-    static final String CONFIG_BOOTSTRAP_SERVERS = "kafka.metrics.StreamingReporter.bootstrap.servers";
-    static final String CONFIG_POLLING_INTERVAL_S = "kafka.metrics.StreamingReporter.polling.interval.s";
+    static final String CONFIG_REPORTER_HOST = "kafka.metrics.host";
+    static final String CONFIG_REPORTER_SERVICE = "kafka.metrics.service";
+    static final String CONFIG_BOOTSTRAP_SERVERS = "kafka.metrics.bootstrap.servers";
+    static final String CONFIG_POLLING_INTERVAL_S = "kafka.metrics.polling.interval.s";
 
     private final MeasurementPublisher publisher;
     private final String host;
     private final String service;
     private final Clock clock;
+    private final long pollintIntervalS;
 
     public StreamingReporter(MetricsRegistry metricsRegistry, Properties config) {
         super(metricsRegistry, "streaming-reporter");
         this.host = config.getProperty(CONFIG_REPORTER_HOST);
         this.service = config.getProperty(CONFIG_REPORTER_SERVICE);
+        this.pollintIntervalS = Long.parseLong(config.getProperty(CONFIG_POLLING_INTERVAL_S, "10"));
         this.clock = Clock.defaultClock();
         this.publisher = new ProducerPublisher(config);
     }
 
+    public MeasurementV1 createMeasurement(MetricName name) {
+        return MeasurementFactory.createMeasurement(host, service, name, clock.time());
+    }
+
+    public void publish(MeasurementV1 m) {
+        publisher.publish(m);
+    }
+
+    public void start() {
+        start(pollintIntervalS, TimeUnit.SECONDS);
+    }
 
     @Override
     public void start(long timeout, TimeUnit unit) {
@@ -85,23 +98,32 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         measurement.getFields().put("15-minute-rate", meter.fifteenMinuteRate());
         measurement.getFields().put("5-minute-rate", meter.fiveMinuteRate());
         measurement.getFields().put("1-minute-rate", meter.oneMinuteRate());
-        publisher.publish(measurement);
+        publish(measurement);
     }
 
     public void processCounter(MetricName name, Counter counter, Long timestamp) {
         MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
         measurement.getFields().put("count", Double.valueOf(counter.count()));
-        publisher.publish(measurement);
+        publish(measurement);
     }
 
     public void processGauge(MetricName name, Gauge<?> gauge, Long timestamp) {
         MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
         if (gauge.value() instanceof Double) {
-            measurement.getFields().put("value", (Double)(gauge.value()));
-            publisher.publish(measurement);
-        } else if (gauge.value() instanceof Long || gauge.value() instanceof Float) {
+            Double value = ((Double)gauge.value());
+            if (!value.isNaN() && !value.isInfinite()) {
+                measurement.getFields().put("value", value);
+                publish(measurement);
+            }
+        } else if ((gauge.value() instanceof Long) || (gauge.value() instanceof Integer)) {
             measurement.getFields().put("value", Double.valueOf(gauge.value().toString()));
-            publisher.publish(measurement);
+            publish(measurement);
+        } else if ((gauge.value() instanceof Float)) {
+            Float value = ((Float) gauge.value());
+            if (!value.isNaN() && !value.isInfinite()) {
+                measurement.getFields().put("value", ((Float) gauge.value()).doubleValue());
+                publish(measurement);
+            }
         }
     }
 
@@ -113,7 +135,7 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         measurement.getFields().put("min", histogram.min());
         measurement.getFields().put("stdDev", histogram.stdDev());
         measurement.getFields().put("sum", histogram.sum());
-        publisher.publish(measurement);
+        publish(measurement);
     }
 
     public void processTimer(MetricName name, Timer timer, Long timestamp) {

@@ -26,6 +26,8 @@ import kafka.consumer.KafkaStream;
 import kafka.message.MessageAndMetadata;
 import kafka.serializer.StringDecoder;
 import kafka.utils.VerifiableProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -35,6 +37,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class KafkaMetricsMain {
+
+    static private final Logger log = LoggerFactory.getLogger(InfluxDbPublisher.class);
 
     public static void main(String[] args) throws InterruptedException {
         String topic = "_metrics";
@@ -93,6 +97,8 @@ public class KafkaMetricsMain {
                         MessageAndMetadata<String, MeasurementV1> m = it.next();
                         publisher.publish(m.message());
                         formatter.writeTo(m.message(), System.out);
+                    } catch (RuntimeException e) {
+                        log.error("Unable to publish measurement", e);
                     } catch (Throwable e) {
                         e.printStackTrace();
                         return;

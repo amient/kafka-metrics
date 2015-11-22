@@ -7,7 +7,7 @@ library.
 
 # Usage
 
-## Usage in Kafka Broker and Kafka Prism
+## Usage in Kafka Broker
 
 ```
 mvn clean package
@@ -18,8 +18,19 @@ add following properties to config file for kafka broker, kafka prism.
 
 ```
 kafka.metrics.reporters=io.amient.kafka.metrics.StreamingMetricsReporter
-kafka.metrics.StreamingReporter.host=my.example.host
-kafka.metrics.StreamingReporter.polling.interval.s=10
+kafka.metrics.host=my.example.host
+kafka.metrics.polling.interval.s=10
+```
+
+## Usage in Kafka Prism and other producers
+ 
+```
+target.<id>.producer.metric.reporters=io.amient.kafka.metrics.KafkaMetricsReporter
+target.<id>.producer.kafka.metrics.host=my.example.host
+target.<id>.producer.kafka.metrics.service=kafka-prism
+target.<id>.producer.kafka.metrics.bootstrap.servers=localhost:9092
+target.<id>.producer.kafka.metrics.polling.interval.s=5
+
 ```
 
 ## Usage in producer/consumer applications 
