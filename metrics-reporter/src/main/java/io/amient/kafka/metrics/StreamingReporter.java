@@ -96,8 +96,13 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
 
     public void processGauge(MetricName name, Gauge<?> gauge, Long timestamp) {
         MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
-        measurement.getFields().put("value", (Double)gauge.value());
-        publisher.publish(measurement);
+        if (gauge.value() instanceof Double) {
+            measurement.getFields().put("value", (Double)(gauge.value()));
+            publisher.publish(measurement);
+        } else if (gauge.value() instanceof Long || gauge.value() instanceof Float) {
+            measurement.getFields().put("value", Double.valueOf(gauge.value().toString()));
+            publisher.publish(measurement);
+        }
     }
 
     public void processHistogram(MetricName name, Histogram histogram, Long timestamp) {
