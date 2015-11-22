@@ -78,25 +78,6 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         }
     }
 
-//    private double convertToSeconds(double value, TimeUnit unit) {
-//        switch (unit) {
-//            case NANOSECONDS:
-//                return value * 1000000000.0;
-//            case MICROSECONDS:
-//                return value * 1000000.0;
-//            case MILLISECONDS:
-//                return value * 1000.0;
-//            case MINUTES:
-//                return value / 60.0;
-//            case HOURS:
-//                return value / 3600.0;
-//            case DAYS:
-//                return value / 86400.0;
-//            default:
-//                return value;
-//        }
-//    }
-
     public void processMeter(MetricName name, Metered meter, Long timestamp) {
         MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
         measurement.getFields().put("count", Double.valueOf(meter.count()));
@@ -108,41 +89,41 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
     }
 
     public void processCounter(MetricName name, Counter counter, Long timestamp) {
-//        String key = name.getGroup();
-//        MetricMessage value = new MetricMessage();
-//        value.setGroup(name.getGroup());
-//        value.setType(name.getType());
-//        value.setName(name.getName());
+        MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
+        measurement.getFields().put("count", Double.valueOf(counter.count()));
+        publisher.publish(measurement);
     }
 
     public void processGauge(MetricName name, Gauge<?> gauge, Long timestamp) {
-
-//        final String header = "# time,finalue";
-//        final Producer producer = context.getProducer();
-//        final String topic = prefix + "-metrics-gauge";
-//        final String message = gauge.value().toString();
-//        send(producer, header, topic, message);
+        MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
+        measurement.getFields().put("value", (Double)gauge.value());
+        publisher.publish(measurement);
     }
 
     public void processHistogram(MetricName name, Histogram histogram, Long timestamp) {
-//        final String header = "# time,min,max,mean,median,stddev,95%,99%,99.9%";
-//        final Producer producer = context.getProducer();
-//        final Snapshot snapshot = histogram.getSnapshot();
-//        final String topic = prefix + "-metrics-histogram";
-//        final String message = valueOf(histogram.min()) + ',' + histogram.max() + ',' + histogram.mean() + ','
-//                + snapshot.getMedian() + ',' + histogram.stdDev() + ',' + snapshot.get95thPercentile() + ',' + snapshot.get99thPercentile() + ','
-//                + snapshot.get999thPercentile();
-//        send(producer, header, topic, message);
+        MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
+        measurement.getFields().put("count", Double.valueOf(histogram.count()));
+        measurement.getFields().put("max", histogram.max());
+        measurement.getFields().put("mean", histogram.mean());
+        measurement.getFields().put("min", histogram.min());
+        measurement.getFields().put("stdDev", histogram.stdDev());
+        measurement.getFields().put("sum", histogram.sum());
+        publisher.publish(measurement);
     }
 
-    public void processTimer(MetricName name, Timer timer, Long nanotime) {
-//        final String header = "# time,min,max,mean,median,stddev,95%,99%,99.9%";
-//        final Producer producer = context.getProducer();
-//        final Snapshot snapshot = timer.getSnapshot();
-//        final String topic = prefix + "-metrics-timer";
-//        final String message = valueOf(timer.min()) + ',' + timer.max() + ',' + timer.mean() + ',' + snapshot.getMedian() + ','
-//                + timer.stdDev() + ',' + snapshot.get95thPercentile() + ',' + snapshot.get99thPercentile() + ',' + snapshot.get999thPercentile();
-//        send(producer, header, topic, message);
+    public void processTimer(MetricName name, Timer timer, Long timestamp) {
+        MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
+        measurement.getFields().put("count", Double.valueOf(timer.count()));
+        measurement.getFields().put("mean-rate", timer.meanRate());
+        measurement.getFields().put("15-minute-rate", timer.fifteenMinuteRate());
+        measurement.getFields().put("5-minute-rate", timer.fiveMinuteRate());
+        measurement.getFields().put("1-minute-rate", timer.oneMinuteRate());
+        measurement.getFields().put("max", timer.max());
+        measurement.getFields().put("mean", timer.mean());
+        measurement.getFields().put("min", timer.min());
+        measurement.getFields().put("stdDev", timer.stdDev());
+        measurement.getFields().put("sum", timer.sum());
+        publisher.publish(measurement);
     }
 
 }

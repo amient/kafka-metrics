@@ -38,8 +38,7 @@ Using kafka console consumer with a formatter for kafka-metrics:
 
 # Development
 
-- Decoder and Formatter
-- Make 2 packaged jars - one for running within existing kafka apps, one standalone for application metrics.
+- [Scripted Grafana dashboard](http://docs.grafana.org/reference/scripting/)  (kafka, prism) 
 - Draw design doc with clear docker image boundaries
     - docker image for Kafka Metrics Instance:
         - Go 1.4
