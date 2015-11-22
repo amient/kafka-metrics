@@ -22,7 +22,6 @@ package io.amient.kafka.metrics;
 import com.yammer.metrics.core.*;
 import com.yammer.metrics.reporting.AbstractPollingReporter;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -79,32 +78,32 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         }
     }
 
-    private double convert(double value, TimeUnit unit) {
-        switch (unit) {
-            case NANOSECONDS:
-                return value * 1000000000.0;
-            case MICROSECONDS:
-                return value * 1000000.0;
-            case MILLISECONDS:
-                return value * 1000.0;
-            case MINUTES:
-                return value / 60.0;
-            case HOURS:
-                return value / 3600.0;
-            case DAYS:
-                return value / 86400.0;
-            default:
-                return value;
-        }
-    }
+//    private double convertToSeconds(double value, TimeUnit unit) {
+//        switch (unit) {
+//            case NANOSECONDS:
+//                return value * 1000000000.0;
+//            case MICROSECONDS:
+//                return value * 1000000.0;
+//            case MILLISECONDS:
+//                return value * 1000.0;
+//            case MINUTES:
+//                return value / 60.0;
+//            case HOURS:
+//                return value / 3600.0;
+//            case DAYS:
+//                return value / 86400.0;
+//            default:
+//                return value;
+//        }
+//    }
 
     public void processMeter(MetricName name, Metered meter, Long timestamp) {
         MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
         measurement.getFields().put("count", Double.valueOf(meter.count()));
-        measurement.getFields().put("mean-rate-per-sec", convert(meter.meanRate(), meter.rateUnit()));
-        measurement.getFields().put("15-minute-rate-per-sec", convert(meter.fifteenMinuteRate(), meter.rateUnit()));
-        measurement.getFields().put("5-minute-rate-per-sec", convert(meter.fiveMinuteRate(), meter.rateUnit()));
-        measurement.getFields().put("1-minute-rate-per-sec", convert(meter.oneMinuteRate(), meter.rateUnit()));
+        measurement.getFields().put("mean-rate", meter.meanRate());
+        measurement.getFields().put("15-minute-rate", meter.fifteenMinuteRate());
+        measurement.getFields().put("5-minute-rate", meter.fiveMinuteRate());
+        measurement.getFields().put("1-minute-rate", meter.oneMinuteRate());
         publisher.publish(measurement);
     }
 
