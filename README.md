@@ -49,6 +49,7 @@ Using kafka console consumer with a formatter for kafka-metrics:
 
 # Development
 
+- Loader configuration file "kafka-metrics.properties"
 - [Scripted Grafana dashboard](http://docs.grafana.org/reference/scripting/)  (kafka, prism) 
 - Draw design doc with clear docker image boundaries
     - docker image for Kafka Metrics Instance:

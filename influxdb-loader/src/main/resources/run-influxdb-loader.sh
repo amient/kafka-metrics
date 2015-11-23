@@ -10,4 +10,4 @@ fi
 
 JAR="$(dirname $DIR)/target/influxdb-loader-main-${project.version}.jar"
 
-"$JAVA" -jar "$JAR"
+"$JAVA" -jar "$JAR" "$@"
