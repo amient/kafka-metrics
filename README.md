@@ -17,7 +17,7 @@ cp stream-reporter/target/stream-reporter-<kafka-version>.jar $KAFKA_HOME/libs/
 add following properties to config file for kafka broker, kafka prism.  
 
 ```
-kafka.metrics.reporters=io.amient.kafka.metrics.StreamingMetricsReporter
+kafka.metrics.reporters=io.amient.kafka.metrics.TopicReporter
 kafka.metrics.host=my.example.host
 kafka.metrics.polling.interval.s=10
 ```
@@ -25,7 +25,7 @@ kafka.metrics.polling.interval.s=10
 ## Usage in Kafka Prism and other producers
  
 ```
-target.<id>.producer.metric.reporters=io.amient.kafka.metrics.KafkaMetricsReporter
+target.<id>.producer.metric.reporters=io.amient.kafka.metrics.TopicReporter
 target.<id>.producer.kafka.metrics.host=my.example.host
 target.<id>.producer.kafka.metrics.service=kafka-prism
 target.<id>.producer.kafka.metrics.bootstrap.servers=localhost:9092

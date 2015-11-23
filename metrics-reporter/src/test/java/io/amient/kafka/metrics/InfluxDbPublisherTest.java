@@ -12,8 +12,8 @@ public class InfluxDbPublisherTest {
 //    @Test
 //    public void t1() {
 //        InfluxDbPublisher p = new InfluxDbPublisher(new Properties() {{
-//            put(StreamingReporter.CONFIG_REPORTER_HOST, "localhost");
-//            put(StreamingReporter.CONFIG_REPORTER_SERVICE, "test");
+//            put(KafkaMetricsProcessor.CONFIG_REPORTER_HOST, "localhost");
+//            put(KafkaMetricsProcessor.CONFIG_REPORTER_SERVICE, "test");
 //        }});
 //        Measurement m = new Measurement();
 //        m.setTimestamp(System.currentTimeMillis());

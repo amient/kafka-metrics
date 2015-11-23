@@ -19,6 +19,4 @@
 
 package io.amient.kafka.metrics;
 
-import kafka.metrics.KafkaMetricsReporterMBean;
-
-public interface StreamingMetricsReporterMBean extends KafkaMetricsReporterMBean {}
+public interface TopicReporterMBean extends kafka.metrics.KafkaMetricsReporterMBean {}

@@ -21,13 +21,14 @@ package io.amient.kafka.metrics;
 
 import com.yammer.metrics.core.*;
 import com.yammer.metrics.reporting.AbstractPollingReporter;
+import org.apache.kafka.common.metrics.KafkaMetric;
 
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public class StreamingReporter extends AbstractPollingReporter implements MetricProcessor<Long> {
+public class KafkaMetricsProcessor extends AbstractPollingReporter implements MetricProcessor<Long> {
 
     static final String CONFIG_REPORTER_HOST = "kafka.metrics.host";
     static final String CONFIG_REPORTER_SERVICE = "kafka.metrics.service";
@@ -40,8 +41,14 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
     private final Clock clock;
     private final long pollintIntervalS;
 
-    public StreamingReporter(MetricsRegistry metricsRegistry, Properties config) {
+    private final Map<org.apache.kafka.common.MetricName, KafkaMetric> kafkaMetrics;
+
+    public KafkaMetricsProcessor(
+            MetricsRegistry metricsRegistry,
+            Map<org.apache.kafka.common.MetricName, KafkaMetric> kafkaMetrics,
+            Properties config) {
         super(metricsRegistry, "streaming-reporter");
+        this.kafkaMetrics = kafkaMetrics;
         this.host = config.getProperty(CONFIG_REPORTER_HOST);
         this.service = config.getProperty(CONFIG_REPORTER_SERVICE);
         this.pollintIntervalS = Long.parseLong(config.getProperty(CONFIG_POLLING_INTERVAL_S, "10"));
@@ -49,16 +56,8 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         this.publisher = new ProducerPublisher(config);
     }
 
-    public MeasurementV1 createMeasurement(MetricName name) {
-        return MeasurementFactory.createMeasurement(host, service, name, clock.time());
-    }
-
     public void publish(MeasurementV1 m) {
         publisher.publish(m);
-    }
-
-    public void start() {
-        start(pollintIntervalS, TimeUnit.SECONDS);
     }
 
     @Override
@@ -75,8 +74,28 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         }
     }
 
+    @Override
     public void run() {
         final Long time = clock.time();
+        //publish kafka metrics
+        for(Map.Entry<org.apache.kafka.common.MetricName, org.apache.kafka.common.metrics.KafkaMetric> m
+                : kafkaMetrics.entrySet()) {
+            Double value = m.getValue().value();
+            if (!value.isNaN() && !value.isInfinite()) {
+                MeasurementV1 measurement = MeasurementFactory.createMeasurement(
+                        host,
+                        service,
+                        new MetricName(m.getKey().group(), "KafkaProducer", m.getKey().name()),
+                        time
+                );
+                for (Map.Entry<String, String> tag : m.getValue().metricName().tags().entrySet()) {
+                    measurement.getTags().put(tag.getKey(), tag.getValue());
+                }
+                measurement.getFields().put("value", value);
+                publish(measurement);
+            }
+        }
+        //publish yammer metrics
         final Set<Map.Entry<MetricName, Metric>> metrics = getMetricsRegistry().allMetrics().entrySet();
         try {
             for (Map.Entry<MetricName, Metric> entry : metrics) {
@@ -91,6 +110,7 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         }
     }
 
+    @Override
     public void processMeter(MetricName name, Metered meter, Long timestamp) {
         MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
         measurement.getFields().put("count", Double.valueOf(meter.count()));
@@ -101,12 +121,14 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         publish(measurement);
     }
 
+    @Override
     public void processCounter(MetricName name, Counter counter, Long timestamp) {
         MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
         measurement.getFields().put("count", Double.valueOf(counter.count()));
         publish(measurement);
     }
 
+    @Override
     public void processGauge(MetricName name, Gauge<?> gauge, Long timestamp) {
         MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
         if (gauge.value() instanceof Double) {
@@ -127,6 +149,7 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         }
     }
 
+    @Override
     public void processHistogram(MetricName name, Histogram histogram, Long timestamp) {
         MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
         measurement.getFields().put("count", Double.valueOf(histogram.count()));
@@ -138,6 +161,7 @@ public class StreamingReporter extends AbstractPollingReporter implements Metric
         publish(measurement);
     }
 
+    @Override
     public void processTimer(MetricName name, Timer timer, Long timestamp) {
         MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
         measurement.getFields().put("count", Double.valueOf(timer.count()));

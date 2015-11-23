@@ -34,7 +34,7 @@ public class ProducerPublisher implements MeasurementPublisher {
     public ProducerPublisher(final Properties config) {
         this.topic = config.getProperty(CONFIG_METRICS_TOPIC, "_metrics");
         this.producer = new KafkaProducer<String, Object>(new Properties() {{
-            put("bootstrap.servers", config.getProperty(StreamingReporter.CONFIG_BOOTSTRAP_SERVERS));
+            put("bootstrap.servers", config.getProperty(KafkaMetricsProcessor.CONFIG_BOOTSTRAP_SERVERS));
             put("key.serializer", org.apache.kafka.common.serialization.StringSerializer.class);
             put("value.serializer", io.amient.kafka.metrics.MeasurementSerializer.class);
         }});
