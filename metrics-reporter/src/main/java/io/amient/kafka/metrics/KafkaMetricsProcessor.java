@@ -39,7 +39,6 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
     private final String host;
     private final String service;
     private final Clock clock;
-    private final long pollintIntervalS;
 
     private final Map<org.apache.kafka.common.MetricName, KafkaMetric> kafkaMetrics;
 
@@ -51,7 +50,6 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
         this.kafkaMetrics = kafkaMetrics;
         this.host = config.getProperty(CONFIG_REPORTER_HOST);
         this.service = config.getProperty(CONFIG_REPORTER_SERVICE);
-        this.pollintIntervalS = Long.parseLong(config.getProperty(CONFIG_POLLING_INTERVAL_S, "10"));
         this.clock = Clock.defaultClock();
         this.publisher = new ProducerPublisher(config);
     }
