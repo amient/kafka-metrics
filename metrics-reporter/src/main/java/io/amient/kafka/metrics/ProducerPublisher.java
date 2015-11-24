@@ -26,15 +26,16 @@ import java.util.Properties;
 
 public class ProducerPublisher implements MeasurementPublisher {
 
-
-    private static final java.lang.String CONFIG_METRICS_TOPIC = "kafka.metrics.topic";
     private final KafkaProducer producer;
     private final String topic;
 
-    public ProducerPublisher(final Properties config) {
-        this.topic = config.getProperty(CONFIG_METRICS_TOPIC, "_metrics");
+    public ProducerPublisher(final String kafkaBootstrapServers, final String topic) {
+        this.topic = topic;
         this.producer = new KafkaProducer<String, Object>(new Properties() {{
-            put("bootstrap.servers", config.getProperty(KafkaMetricsProcessor.CONFIG_BOOTSTRAP_SERVERS));
+            put("bootstrap.servers", kafkaBootstrapServers);
+            put("compression.type", "gzip");
+            put("batch.size", "250");
+            put("linger.ms", "1000");
             put("key.serializer", org.apache.kafka.common.serialization.StringSerializer.class);
             put("value.serializer", io.amient.kafka.metrics.MeasurementSerializer.class);
         }});
@@ -42,7 +43,7 @@ public class ProducerPublisher implements MeasurementPublisher {
 
     @Override
     public void publish(MeasurementV1 m) {
-        producer.send(new ProducerRecord<String, Object>(topic, m.getHost().toString(), m));
+        producer.send(new ProducerRecord<String, Object>(topic, m.getName().toString(), m));
     }
 
     @Override

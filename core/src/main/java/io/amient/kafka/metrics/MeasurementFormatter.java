@@ -45,10 +45,6 @@ public class MeasurementFormatter extends MeasurementDeserializer implements Mes
 
     public void writeTo(MeasurementV1 measurement, PrintStream output) {
         output.append(measurement.getName());
-        output.append(",host=");
-        output.append(measurement.getHost());
-        output.append(",service=");
-        output.append(measurement.getService());
         for (java.util.Map.Entry<CharSequence, CharSequence> tag : measurement.getTags().entrySet()) {
             output.append(",");
             output.append(tag.getKey());

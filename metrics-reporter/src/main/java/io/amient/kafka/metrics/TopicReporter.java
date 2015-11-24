@@ -26,9 +26,7 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -38,24 +36,58 @@ public class TopicReporter
         io.amient.kafka.metrics.TopicReporterMBean,
         org.apache.kafka.common.metrics.MetricsReporter {
     private static final Logger log = LoggerFactory.getLogger(TopicReporter.class);
+
+    private static final String CONFIG_METRICS_TOPIC = "kafka.metrics.topic";
+    private static final String CONFIG_POLLING_INTERVAL = "kafka.metrics.polling.interval";
+    private static final String CONFIG_BOOTSTRAP_SERVERS = "kafka.metrics.bootstrap.servers";
+
+    private static final String CONFIG_REPORTER_TAG_PREFIX = "kafka.metrics.tag.";
+    private static final String CONFIG_REPORTER_TAG_SERVICE = CONFIG_REPORTER_TAG_PREFIX + "service";
+    private Map<String, String> fixedTags = new HashMap<String,String>();
+
     private KafkaMetricsProcessor underlying;
     volatile private boolean running;
     volatile private boolean initialized;
     private Properties config;
     final private Map<MetricName, KafkaMetric> kafkaMetrics = new ConcurrentHashMap<MetricName, KafkaMetric>();
+    private MeasurementPublisher publisher;
 
     public TopicReporter() {}
 
     private void init() {
         if (!initialized) {
-            underlying = new KafkaMetricsProcessor(Metrics.defaultRegistry(), kafkaMetrics, this.config);
+            log.info("Initializing TopicReporter");
+            HashMap<String, String> fixedTags = new HashMap<String, String>();
+            for (Enumeration<Object> e = config.keys(); e.hasMoreElements(); ) {
+                Object propKey = e.nextElement();
+                String propName = ((String) propKey);
+                String propValue = (String) config.get(propKey);
+                if (propName.startsWith(CONFIG_REPORTER_TAG_PREFIX)) {
+                    fixedTags.put(propName.substring(CONFIG_REPORTER_TAG_PREFIX.length()), propValue);
+                    log.info("Initializing TopicReporter tag: " + propName.substring(CONFIG_REPORTER_TAG_PREFIX.length()) + "=" + propValue);
+                }
+            }
+            log.info("Initializing TopicReporter " + CONFIG_BOOTSTRAP_SERVERS + "=" + config.getProperty(CONFIG_BOOTSTRAP_SERVERS));
+            log.info("Initializing TopicReporter " + CONFIG_METRICS_TOPIC + "=" + config.getProperty(CONFIG_METRICS_TOPIC, "_metrics"));
+            publisher = new ProducerPublisher(
+                    config.getProperty(CONFIG_BOOTSTRAP_SERVERS),
+                    config.getProperty(CONFIG_METRICS_TOPIC, "_metrics"));
+            underlying = new KafkaMetricsProcessor(Metrics.defaultRegistry(), kafkaMetrics, publisher, fixedTags);
+            Integer pollingIntervalSeconds;
+            String interval = config.getProperty(CONFIG_POLLING_INTERVAL, "10s");
+            if (interval == "1s") pollingIntervalSeconds = 1;
+            else if (interval == "10s") pollingIntervalSeconds = 10;
+            else if (interval == "1m") pollingIntervalSeconds = 60;
+            else throw new IllegalArgumentException("Illegal configuration value for "
+                        + CONFIG_POLLING_INTERVAL + ", allowed values are: 1s, 10s, 1m");
+            log.info("Initializing TopicReporter polling interval (seconds): " + pollingIntervalSeconds);
             initialized = true;
-            startReporter(Integer.valueOf(config.getProperty(KafkaMetricsProcessor.CONFIG_POLLING_INTERVAL_S, "10")));
+            startReporter(pollingIntervalSeconds);
         }
     }
 
     /*
-     * kafka.metrics.KafkaMetricsProcessor and TopicReporterMBean impelemntation
+     * kafka.metrics.KafkaMetricsProcessor and TopicReporterMBean for Kafka Broker integration
      */
     public String getMBeanName() {
         return "kafka:type=io.amient.kafka.metrics.TopicReporter";
@@ -64,8 +96,10 @@ public class TopicReporter
     synchronized public void init(VerifiableProperties kafkaConfig) {
         if (!initialized) {
             this.config = kafkaConfig.props();
-            config.put(KafkaMetricsProcessor.CONFIG_REPORTER_SERVICE, "kafka-broker-" + config.get("broker.id"));
-            config.put(KafkaMetricsProcessor.CONFIG_BOOTSTRAP_SERVERS, "localhost:" + config.get("port"));
+            if (!config.containsKey(CONFIG_REPORTER_TAG_SERVICE)) {
+                config.put(CONFIG_REPORTER_TAG_SERVICE, "kafka-broker-" + config.get("broker.id"));
+            }
+            config.put(CONFIG_BOOTSTRAP_SERVERS, "localhost:" + config.get("port"));
             init();
         }
     }
@@ -74,7 +108,7 @@ public class TopicReporter
         if (initialized && !running) {
             underlying.start(pollingPeriodSecs, TimeUnit.SECONDS);
             running = true;
-            log.info("Started TopicReproter instance with polling period " + pollingPeriodSecs + "  seconds");
+            log.info("Started TopicReporter instance with polling period " + pollingPeriodSecs + "  seconds");
         }
     }
 
@@ -83,18 +117,25 @@ public class TopicReporter
             underlying.shutdown();
             running = false;
             log.info("Stopped TopicReproter instance");
-            this.underlying = new KafkaMetricsProcessor(Metrics.defaultRegistry(), kafkaMetrics, config);
+            this.underlying = new KafkaMetricsProcessor(
+                    Metrics.defaultRegistry(),
+                    kafkaMetrics,
+                    publisher,
+                    fixedTags);
         }
     }
 
     /*
-     * org.apache.kafka.common.metrics.MetricsReporter interface implementations follows
+     * org.apache.kafka.common.metrics.MetricsReporter interface implementation for new Kafka Producer (0.8.2+)
      */
 
     @Override
     public void configure(Map<String, ?> configs) {
         config = new Properties();
         config.putAll(configs);
+        if (config.containsKey("bootstrap.servers") && !config.containsKey(CONFIG_BOOTSTRAP_SERVERS)) {
+            config.put(CONFIG_BOOTSTRAP_SERVERS, config.getProperty("bootstrap.servers"));
+        }
     }
 
     @Override

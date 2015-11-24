@@ -25,36 +25,44 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class KafkaMetricsProcessor extends AbstractPollingReporter implements MetricProcessor<Long> {
     private static final Logger log = LoggerFactory.getLogger(KafkaMetricsProcessor.class);
 
-    static final String CONFIG_REPORTER_HOST = "kafka.metrics.host";
-    static final String CONFIG_REPORTER_SERVICE = "kafka.metrics.service";
-    static final String CONFIG_BOOTSTRAP_SERVERS = "kafka.metrics.bootstrap.servers";
-    static final String CONFIG_POLLING_INTERVAL_S = "kafka.metrics.polling.interval.s";
-
     private final MeasurementPublisher publisher;
-    private final String host;
-    private final String service;
     private final Clock clock;
 
     private final Map<org.apache.kafka.common.MetricName, KafkaMetric> kafkaMetrics;
+    private final Map<String, String> fixedTags;
 
     public KafkaMetricsProcessor(
             MetricsRegistry metricsRegistry,
             Map<org.apache.kafka.common.MetricName, KafkaMetric> kafkaMetrics,
-            Properties config) {
+            MeasurementPublisher publisher,
+            Map<String, String> fixedTags
+            ) {
         super(metricsRegistry, "streaming-reporter");
         this.kafkaMetrics = kafkaMetrics;
-        this.host = config.getProperty(CONFIG_REPORTER_HOST);
-        this.service = config.getProperty(CONFIG_REPORTER_SERVICE);
         this.clock = Clock.defaultClock();
-        this.publisher = new ProducerPublisher(config);
+        this.fixedTags = fixedTags;
+        this.publisher = publisher;
+    }
+
+    private MeasurementV1 createMeasurement(com.yammer.metrics.core.MetricName name,
+            Long timestamp, Map<String,String> tags, Map<String,Double> fields) {
+        MeasurementV1 measurement = new MeasurementV1();
+        measurement.setTimestamp(timestamp);
+        measurement.setName(name.getName());
+        measurement.setTags(new HashMap<CharSequence, CharSequence>(tags));
+        if (name.getGroup() != null && !name.getGroup().isEmpty()) measurement.getTags().put("group", name.getGroup());
+        if (name.getType() != null && !name.getType().isEmpty()) measurement.getTags().put("type", name.getType());
+        if (name.getScope() != null && !name.getScope().isEmpty()) measurement.getTags().put("scope", name.getScope());
+        measurement.setFields(new HashMap<CharSequence, Double>(fields));
+        return measurement;
     }
 
     public void publish(MeasurementV1 m) {
@@ -77,33 +85,35 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
 
     @Override
     public void run() {
-        final Long time = clock.time();
-        //publish kafka metrics
+        final Long timestamp = clock.time();
+        //process kafka metrics
         for(Map.Entry<org.apache.kafka.common.MetricName, org.apache.kafka.common.metrics.KafkaMetric> m
                 : kafkaMetrics.entrySet()) {
             Double value = m.getValue().value();
             if (!value.isNaN() && !value.isInfinite()) {
-                MeasurementV1 measurement = MeasurementFactory.createMeasurement(
-                        host,
-                        service,
-                        new MetricName(m.getKey().group(), "KafkaProducer", m.getKey().name()),
-                        time
-                );
+                Map<String,String> tags = new HashMap<String, String>(fixedTags);
+                tags.put("group", m.getKey().group());
                 for (Map.Entry<String, String> tag : m.getValue().metricName().tags().entrySet()) {
-                    measurement.getTags().put(tag.getKey(), tag.getValue());
+                    tags.put(tag.getKey(), tag.getValue());
                 }
-                measurement.getFields().put("value", value);
+                Map<String, Double> fields = new HashMap<String, Double>();
+                fields.put("value", value);
+                MeasurementV1 measurement = new MeasurementV1();
+                measurement.setTimestamp(timestamp);
+                measurement.setName(m.getKey().name());
+                measurement.setTags(new HashMap<CharSequence, CharSequence>(tags));
+                measurement.setFields(new HashMap<CharSequence, Double>(fields));
                 publish(measurement);
             }
         }
-        //publish yammer metrics
+        //process yammer metrics
         final Set<Map.Entry<MetricName, Metric>> metrics = getMetricsRegistry().allMetrics().entrySet();
         try {
             for (Map.Entry<MetricName, Metric> entry : metrics) {
                 final MetricName metricName = entry.getKey();
                 final Metric metric = entry.getValue();
                 if (MetricPredicate.ALL.matches(metricName, metric)) {
-                    metric.processWith(this, entry.getKey(), time);
+                    metric.processWith(this, entry.getKey(), timestamp);
                 }
             }
         } catch (Exception e) {
@@ -113,42 +123,43 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
 
     @Override
     public void processMeter(MetricName name, Metered meter, Long timestamp) {
-        MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
-        measurement.getFields().put("count", Double.valueOf(meter.count()));
-        measurement.getFields().put("mean-rate", meter.meanRate());
-        measurement.getFields().put("15-minute-rate", meter.fifteenMinuteRate());
-        measurement.getFields().put("5-minute-rate", meter.fiveMinuteRate());
-        measurement.getFields().put("1-minute-rate", meter.oneMinuteRate());
-        publish(measurement);
+        Map<String, Double> fields = new HashMap<String, Double>();
+        fields.put("count", Double.valueOf(meter.count()));
+        fields.put("mean-rate", meter.meanRate());
+        fields.put("15-minute-rate", meter.fifteenMinuteRate());
+        fields.put("5-minute-rate", meter.fiveMinuteRate());
+        fields.put("1-minute-rate", meter.oneMinuteRate());
+
+        publish(createMeasurement(name, timestamp, fixedTags, fields));
     }
 
     @Override
     public void processCounter(MetricName name, Counter counter, Long timestamp) {
-        MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
-        measurement.getFields().put("count", Double.valueOf(counter.count()));
-        publish(measurement);
+        Map<String, Double> fields = new HashMap<String, Double>();
+        fields.put("count", Double.valueOf(counter.count()));
+        publish(createMeasurement(name, timestamp, fixedTags, fields));
     }
 
     @Override
     public void processGauge(MetricName name, Gauge<?> gauge, Long timestamp) {
-        MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
+        Map<String, Double> fields = new HashMap<String, Double>();
         try {
             if (gauge.value() instanceof Double) {
                 Double value = ((Double) gauge.value());
                 if (!value.isNaN() && !value.isInfinite()) {
-                    measurement.getFields().put("value", value);
-                    publish(measurement);
+                    fields.put("value", value);
                 }
             } else if ((gauge.value() instanceof Long) || (gauge.value() instanceof Integer)) {
-                measurement.getFields().put("value", Double.valueOf(gauge.value().toString()));
-                publish(measurement);
+                fields.put("value", Double.valueOf(gauge.value().toString()));
             } else if ((gauge.value() instanceof Float)) {
                 Float value = ((Float) gauge.value());
                 if (!value.isNaN() && !value.isInfinite()) {
-                    measurement.getFields().put("value", ((Float) gauge.value()).doubleValue());
-                    publish(measurement);
+                    fields.put("value", ((Float) gauge.value()).doubleValue());
                 }
+            } else {
+                return;
             }
+            publish(createMeasurement(name, timestamp, fixedTags, fields));
         } catch (Exception e) {
             log.warn("Could not process gauge", e);
         }
@@ -156,31 +167,33 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
 
     @Override
     public void processHistogram(MetricName name, Histogram histogram, Long timestamp) {
-        MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
-        measurement.getFields().put("count", Double.valueOf(histogram.count()));
-        measurement.getFields().put("max", histogram.max());
-        measurement.getFields().put("mean", histogram.mean());
-        measurement.getFields().put("min", histogram.min());
-        measurement.getFields().put("stdDev", histogram.stdDev());
-        measurement.getFields().put("sum", histogram.sum());
-        publish(measurement);
+        Map<String, Double> fields = new HashMap<String, Double>();
+        fields.put("count", Double.valueOf(histogram.count()));
+        fields.put("max", histogram.max());
+        fields.put("mean", histogram.mean());
+        fields.put("min", histogram.min());
+        fields.put("stdDev", histogram.stdDev());
+        fields.put("sum", histogram.sum());
+        publish(createMeasurement(name, timestamp, fixedTags, fields));
     }
 
     @Override
     public void processTimer(MetricName name, Timer timer, Long timestamp) {
-        MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
-        measurement.getFields().put("count", Double.valueOf(timer.count()));
-        measurement.getFields().put("mean-rate", timer.meanRate());
-        measurement.getFields().put("15-minute-rate", timer.fifteenMinuteRate());
-        measurement.getFields().put("5-minute-rate", timer.fiveMinuteRate());
-        measurement.getFields().put("1-minute-rate", timer.oneMinuteRate());
-        measurement.getFields().put("max", timer.max());
-        measurement.getFields().put("mean", timer.mean());
-        measurement.getFields().put("min", timer.min());
-        measurement.getFields().put("stdDev", timer.stdDev());
-        measurement.getFields().put("sum", timer.sum());
-        publisher.publish(measurement);
+        Map<String, Double> fields = new HashMap<String, Double>();
+        fields.put("count", Double.valueOf(timer.count()));
+        fields.put("mean-rate", timer.meanRate());
+        fields.put("15-minute-rate", timer.fifteenMinuteRate());
+        fields.put("5-minute-rate", timer.fiveMinuteRate());
+        fields.put("1-minute-rate", timer.oneMinuteRate());
+        fields.put("max", timer.max());
+        fields.put("mean", timer.mean());
+        fields.put("min", timer.min());
+        fields.put("stdDev", timer.stdDev());
+        fields.put("sum", timer.sum());
+        publish(createMeasurement(name, timestamp, fixedTags, fields));
     }
+
+
 
 }
 
