@@ -22,6 +22,8 @@ package io.amient.kafka.metrics;
 import com.yammer.metrics.core.*;
 import com.yammer.metrics.reporting.AbstractPollingReporter;
 import org.apache.kafka.common.metrics.KafkaMetric;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Properties;
@@ -29,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class KafkaMetricsProcessor extends AbstractPollingReporter implements MetricProcessor<Long> {
+    private static final Logger log = LoggerFactory.getLogger(KafkaMetricsProcessor.class);
 
     static final String CONFIG_REPORTER_HOST = "kafka.metrics.host";
     static final String CONFIG_REPORTER_SERVICE = "kafka.metrics.service";
@@ -129,21 +132,25 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
     @Override
     public void processGauge(MetricName name, Gauge<?> gauge, Long timestamp) {
         MeasurementV1 measurement = MeasurementFactory.createMeasurement(host, service, name, timestamp);
-        if (gauge.value() instanceof Double) {
-            Double value = ((Double)gauge.value());
-            if (!value.isNaN() && !value.isInfinite()) {
-                measurement.getFields().put("value", value);
+        try {
+            if (gauge.value() instanceof Double) {
+                Double value = ((Double) gauge.value());
+                if (!value.isNaN() && !value.isInfinite()) {
+                    measurement.getFields().put("value", value);
+                    publish(measurement);
+                }
+            } else if ((gauge.value() instanceof Long) || (gauge.value() instanceof Integer)) {
+                measurement.getFields().put("value", Double.valueOf(gauge.value().toString()));
                 publish(measurement);
+            } else if ((gauge.value() instanceof Float)) {
+                Float value = ((Float) gauge.value());
+                if (!value.isNaN() && !value.isInfinite()) {
+                    measurement.getFields().put("value", ((Float) gauge.value()).doubleValue());
+                    publish(measurement);
+                }
             }
-        } else if ((gauge.value() instanceof Long) || (gauge.value() instanceof Integer)) {
-            measurement.getFields().put("value", Double.valueOf(gauge.value().toString()));
-            publish(measurement);
-        } else if ((gauge.value() instanceof Float)) {
-            Float value = ((Float) gauge.value());
-            if (!value.isNaN() && !value.isInfinite()) {
-                measurement.getFields().put("value", ((Float) gauge.value()).doubleValue());
-                publish(measurement);
-            }
+        } catch (Exception e) {
+            log.warn("Could not process gauge", e);
         }
     }
 

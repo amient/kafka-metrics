@@ -49,6 +49,10 @@ Using kafka console consumer with a formatter for kafka-metrics:
 
 # Development
 
+- reporting interval should be fixed to 10s for dashboards to report aggregated rates correctly
+- should `_metrics` topic represent only per cluster metric stream, NEVER aggregate, and have aggregate have `_metrics_aggregated` or something ?
+   - this requires the prism feature for topic name prefix/suffix, but 
+- In prism deployment infer boostrap.servers from the producer
 - Loader configuration file "kafka-metrics.properties"
 - [Scripted Grafana dashboard](http://docs.grafana.org/reference/scripting/)  (kafka, prism) 
 - Draw design doc with clear docker image boundaries
