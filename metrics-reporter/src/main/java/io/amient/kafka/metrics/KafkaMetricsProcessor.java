@@ -161,7 +161,7 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
             }
             publish(createMeasurement(name, timestamp, fixedTags, fields));
         } catch (Exception e) {
-            log.warn("Could not process gauge", e);
+            log.warn("Could not process gauge for metric " + name +": " + e.getMessage());
         }
     }
 
