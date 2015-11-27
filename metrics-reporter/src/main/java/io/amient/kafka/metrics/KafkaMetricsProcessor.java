@@ -38,18 +38,25 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
 
     private final Map<org.apache.kafka.common.MetricName, KafkaMetric> kafkaMetrics;
     private final Map<String, String> fixedTags;
+    private final Integer pollingIntervalSeconds;
 
     public KafkaMetricsProcessor(
             MetricsRegistry metricsRegistry,
             Map<org.apache.kafka.common.MetricName, KafkaMetric> kafkaMetrics,
             MeasurementPublisher publisher,
-            Map<String, String> fixedTags
+            Map<String, String> fixedTags,
+            Integer pollingIntervalSeconds
             ) {
         super(metricsRegistry, "streaming-reporter");
         this.kafkaMetrics = kafkaMetrics;
         this.clock = Clock.defaultClock();
         this.fixedTags = fixedTags;
         this.publisher = publisher;
+        this.pollingIntervalSeconds = pollingIntervalSeconds;
+    }
+
+    public Integer getPollingIntervaSeconds() {
+        return pollingIntervalSeconds;
     }
 
     private MeasurementV1 createMeasurement(com.yammer.metrics.core.MetricName name,

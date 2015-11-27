@@ -49,11 +49,10 @@ will produce kafka-metrics messages to a configured topic every given time inter
 ...
 ```
 
-...
+... Using builder for programmatic initialization
 
 ``` 
 val registry = MetricsRegistry.defaultRegistry()
-val config = new java.util.Properties() //see configuration optinos below
 val reporter = TopicReporter.forRegistry(registry)
     .setTopic("_metrics) //this is also default
     .setBootstrapServers("kafka1:9092,kafka2:9092")
@@ -63,6 +62,14 @@ val reporter = TopicReporter.forRegistry(registry)
 reporter.start(10, TimeUnit.SECONDS);
 ```
 
+... OR Using config properties:
+ 
+```
+val registry = MetricsRegistry.defaultRegistry()
+val config = new java.util.Properties(<CONFIGURATION-OPTIONS>)
+val reporter = TopicReporter.forRegistry(registry).configure(config).build()
+reporter.start(10, TimeUnit.SECONDS);
+```
 
 <a name="configuration">
 ## Configuration Options
@@ -93,6 +100,7 @@ Using kafka console consumer with a formatter for kafka-metrics:
 ## Development
 </a>
 
+- TODO: sphinx documentation using generated versions in the examples and try to back-port to kafka 0.7 and forward port to kafka 0.9
 - TODO: expose all except serde configs for kafka producer (NEW) configuration properties - namespace them all with kafka.metrics.producer...
 - DESIGN: should `_metrics` topic represent only per cluster metric stream, NEVER aggregate, and have aggregate have `_metrics_aggregated` or something ?
    - this requires the prism feature for topic name prefix/suffix 

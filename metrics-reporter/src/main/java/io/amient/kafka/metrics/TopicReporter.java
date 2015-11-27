@@ -38,64 +38,22 @@ public class TopicReporter
         org.apache.kafka.common.metrics.MetricsReporter {
     private static final Logger log = LoggerFactory.getLogger(TopicReporter.class);
 
-    private static final String CONFIG_METRICS_TOPIC = "kafka.metrics.topic";
-    private static final String CONFIG_POLLING_INTERVAL = "kafka.metrics.polling.interval";
-    private static final String CONFIG_BOOTSTRAP_SERVERS = "kafka.metrics.bootstrap.servers";
-
-    private static final String CONFIG_REPORTER_TAG_PREFIX = "kafka.metrics.tag.";
-    private static final String CONFIG_REPORTER_TAG_SERVICE = CONFIG_REPORTER_TAG_PREFIX + "service";
-    private Map<String, String> fixedTags = new HashMap<String,String>();
-
+    final private Map<MetricName, KafkaMetric> kafkaMetrics = new ConcurrentHashMap<MetricName, KafkaMetric>();
+    final private KafkaMetricsProcessorBuilder builder = forRegistry(Metrics.defaultRegistry());
     private KafkaMetricsProcessor underlying;
+    private Properties config;
     volatile private boolean running;
     volatile private boolean initialized;
-    private Properties config;
-    final private Map<MetricName, KafkaMetric> kafkaMetrics = new ConcurrentHashMap<MetricName, KafkaMetric>();
-    private MeasurementPublisher publisher;
 
     public TopicReporter() {}
 
     /**
-     * Builder for programatic configuration into exesting Yammer Metrics registry
-     * @param registry
-     * @return
+     * Builder for programmatic configuration into an existing Yammer Metrics registry
+     * @param registry metrics registry to which to attach the reporter
+     * @return a builder instance for the reporter
      */
     public static KafkaMetricsProcessorBuilder forRegistry(MetricsRegistry registry) {
         return new KafkaMetricsProcessorBuilder(registry);
-    }
-
-    private void init() {
-        if (!initialized) {
-            log.info("Initializing TopicReporter");
-            HashMap<String, String> fixedTags = new HashMap<String, String>();
-            for (Enumeration<Object> e = config.keys(); e.hasMoreElements(); ) {
-                Object propKey = e.nextElement();
-                String propName = ((String) propKey);
-                String propValue = (String) config.get(propKey);
-                if (propName.startsWith(CONFIG_REPORTER_TAG_PREFIX)) {
-                    fixedTags.put(propName.substring(CONFIG_REPORTER_TAG_PREFIX.length()), propValue);
-                    log.info("Initializing TopicReporter tag: " + propName.substring(CONFIG_REPORTER_TAG_PREFIX.length()) + "=" + propValue);
-                }
-            }
-            log.info("Initializing TopicReporter " + CONFIG_BOOTSTRAP_SERVERS + "=" + config.getProperty(CONFIG_BOOTSTRAP_SERVERS));
-            log.info("Initializing TopicReporter " + CONFIG_METRICS_TOPIC + "=" + config.getProperty(CONFIG_METRICS_TOPIC, "_metrics"));
-            underlying = forRegistry(Metrics.defaultRegistry())
-                    .setKafkaMetrics(kafkaMetrics)
-                    .setBootstrapServers(config.getProperty(CONFIG_BOOTSTRAP_SERVERS))
-                    .setTopic(config.getProperty(CONFIG_METRICS_TOPIC, "_metrics"))
-                    .setTags(fixedTags)
-                    .build();
-            Integer pollingIntervalSeconds;
-            String interval = config.getProperty(CONFIG_POLLING_INTERVAL, "10s");
-            if (interval == "1s") pollingIntervalSeconds = 1;
-            else if (interval == "10s") pollingIntervalSeconds = 10;
-            else if (interval == "1m") pollingIntervalSeconds = 60;
-            else throw new IllegalArgumentException("Illegal configuration value for "
-                        + CONFIG_POLLING_INTERVAL + ", allowed values are: 1s, 10s, 1m");
-            log.info("Initializing TopicReporter polling interval (seconds): " + pollingIntervalSeconds);
-            initialized = true;
-            startReporter(pollingIntervalSeconds);
-        }
     }
 
     /*
@@ -108,14 +66,10 @@ public class TopicReporter
     synchronized public void init(VerifiableProperties kafkaConfig) {
         if (!initialized) {
             this.config = kafkaConfig.props();
-            if (!config.containsKey(CONFIG_REPORTER_TAG_SERVICE)) {
-                config.put(CONFIG_REPORTER_TAG_SERVICE, "kafka-broker"
-                    + (config.containsKey("broker.id") ? "-" + config.get("broker.id") : ""));
-            }
-            if (!config.containsKey(CONFIG_BOOTSTRAP_SERVERS) && config.containsKey("port")) {
-                config.put(CONFIG_BOOTSTRAP_SERVERS, "localhost:" + config.get("port"));
-            }
-            init();
+            builder.configure(config);
+            underlying = builder.build();
+            initialized = true;
+            startReporter(underlying.getPollingIntervaSeconds());
         }
     }
 
@@ -131,12 +85,8 @@ public class TopicReporter
         if (initialized && running) {
             underlying.shutdown();
             running = false;
-            log.info("Stopped TopicReproter instance");
-            this.underlying = new KafkaMetricsProcessor(
-                    Metrics.defaultRegistry(),
-                    kafkaMetrics,
-                    publisher,
-                    fixedTags);
+            log.info("Stopped TopicReporter instance");
+            underlying = builder.build();
         }
     }
 
@@ -149,17 +99,18 @@ public class TopicReporter
     public void configure(Map<String, ?> configs) {
         config = new Properties();
         config.putAll(configs);
-        if (config.containsKey("bootstrap.servers") && !config.containsKey(CONFIG_BOOTSTRAP_SERVERS)) {
-            config.put(CONFIG_BOOTSTRAP_SERVERS, config.getProperty("bootstrap.servers"));
-        }
     }
 
     @Override
     public void init(List<org.apache.kafka.common.metrics.KafkaMetric> metrics) {
-        init();
+        builder.configure(config);
+        builder.setKafkaMetrics(kafkaMetrics);
         for (org.apache.kafka.common.metrics.KafkaMetric metric : metrics) {
             metricChange(metric);
         }
+        underlying = builder.build();
+        initialized = true;
+        startReporter(underlying.getPollingIntervaSeconds());
     }
 
     @Override
