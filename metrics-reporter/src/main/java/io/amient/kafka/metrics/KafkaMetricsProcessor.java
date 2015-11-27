@@ -87,7 +87,8 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
     public void run() {
         final Long timestamp = clock.time();
         //process kafka metrics
-        for(Map.Entry<org.apache.kafka.common.MetricName, org.apache.kafka.common.metrics.KafkaMetric> m
+        if (kafkaMetrics != null)
+            for(Map.Entry<org.apache.kafka.common.MetricName, org.apache.kafka.common.metrics.KafkaMetric> m
                 : kafkaMetrics.entrySet()) {
             Double value = m.getValue().value();
             if (!value.isNaN() && !value.isInfinite()) {

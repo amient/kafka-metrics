@@ -20,6 +20,7 @@
 package io.amient.kafka.metrics;
 
 import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.MetricsRegistry;
 import kafka.utils.VerifiableProperties;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
@@ -54,6 +55,15 @@ public class TopicReporter
 
     public TopicReporter() {}
 
+    /**
+     * Builder for programatic configuration into exesting Yammer Metrics registry
+     * @param registry
+     * @return
+     */
+    public static KafkaMetricsProcessorBuilder forRegistry(MetricsRegistry registry) {
+        return new KafkaMetricsProcessorBuilder(registry);
+    }
+
     private void init() {
         if (!initialized) {
             log.info("Initializing TopicReporter");
@@ -69,10 +79,12 @@ public class TopicReporter
             }
             log.info("Initializing TopicReporter " + CONFIG_BOOTSTRAP_SERVERS + "=" + config.getProperty(CONFIG_BOOTSTRAP_SERVERS));
             log.info("Initializing TopicReporter " + CONFIG_METRICS_TOPIC + "=" + config.getProperty(CONFIG_METRICS_TOPIC, "_metrics"));
-            publisher = new ProducerPublisher(
-                    config.getProperty(CONFIG_BOOTSTRAP_SERVERS),
-                    config.getProperty(CONFIG_METRICS_TOPIC, "_metrics"));
-            underlying = new KafkaMetricsProcessor(Metrics.defaultRegistry(), kafkaMetrics, publisher, fixedTags);
+            underlying = forRegistry(Metrics.defaultRegistry())
+                    .setKafkaMetrics(kafkaMetrics)
+                    .setBootstrapServers(config.getProperty(CONFIG_BOOTSTRAP_SERVERS))
+                    .setTopic(config.getProperty(CONFIG_METRICS_TOPIC, "_metrics"))
+                    .setTags(fixedTags)
+                    .build();
             Integer pollingIntervalSeconds;
             String interval = config.getProperty(CONFIG_POLLING_INTERVAL, "10s");
             if (interval == "1s") pollingIntervalSeconds = 1;
@@ -87,7 +99,7 @@ public class TopicReporter
     }
 
     /*
-     * kafka.metrics.KafkaMetricsProcessor and TopicReporterMBean for Kafka Broker integration
+     * kafka.metrics.kafkaMetricsProcessor and TopicReporterMBean for Kafka Broker integration
      */
     public String getMBeanName() {
         return "kafka:type=io.amient.kafka.metrics.TopicReporter";
@@ -97,9 +109,12 @@ public class TopicReporter
         if (!initialized) {
             this.config = kafkaConfig.props();
             if (!config.containsKey(CONFIG_REPORTER_TAG_SERVICE)) {
-                config.put(CONFIG_REPORTER_TAG_SERVICE, "kafka-broker-" + config.get("broker.id"));
+                config.put(CONFIG_REPORTER_TAG_SERVICE, "kafka-broker"
+                    + (config.containsKey("broker.id") ? "-" + config.get("broker.id") : ""));
             }
-            config.put(CONFIG_BOOTSTRAP_SERVERS, "localhost:" + config.get("port"));
+            if (!config.containsKey(CONFIG_BOOTSTRAP_SERVERS) && config.containsKey("port")) {
+                config.put(CONFIG_BOOTSTRAP_SERVERS, "localhost:" + config.get("port"));
+            }
             init();
         }
     }
@@ -127,6 +142,7 @@ public class TopicReporter
 
     /*
      * org.apache.kafka.common.metrics.MetricsReporter interface implementation for new Kafka Producer (0.8.2+)
+     * and Consumer (0.9+)
      */
 
     @Override
