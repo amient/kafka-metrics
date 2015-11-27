@@ -52,15 +52,9 @@ public class KafkaMetricsProcessorBuilder {
         return this;
     }
 
-    public void setTag(String tagName, String tagValue) {
+    public KafkaMetricsProcessorBuilder setTag(String tagName, String tagValue) {
         tags.put(tagName, tagValue);
-    }
-
-    public KafkaMetricsProcessor build() {
-
-        MeasurementPublisher publisher = new ProducerPublisher(bootstrapServers, topic);
-
-        return new KafkaMetricsProcessor(registry, kafkaMetrics, publisher, tags);
+        return this;
     }
 
     public KafkaMetricsProcessorBuilder setKafkaMetrics(Map<MetricName,KafkaMetric> kafkaMetrics) {
@@ -72,4 +66,13 @@ public class KafkaMetricsProcessorBuilder {
         this.tags = tags;
         return this;
     }
+
+    public KafkaMetricsProcessor build() {
+
+        MeasurementPublisher publisher = new ProducerPublisher(bootstrapServers, topic);
+
+        return new KafkaMetricsProcessor(registry, kafkaMetrics, publisher, tags);
+    }
+
+
 }
