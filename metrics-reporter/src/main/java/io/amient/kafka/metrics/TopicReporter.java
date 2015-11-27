@@ -31,15 +31,14 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-public class TopicReporter
-        implements
+public class TopicReporter implements
         kafka.metrics.KafkaMetricsReporter,
         io.amient.kafka.metrics.TopicReporterMBean,
         org.apache.kafka.common.metrics.MetricsReporter {
     private static final Logger log = LoggerFactory.getLogger(TopicReporter.class);
 
     final private Map<MetricName, KafkaMetric> kafkaMetrics = new ConcurrentHashMap<MetricName, KafkaMetric>();
-    final private KafkaMetricsProcessorBuilder builder = forRegistry(Metrics.defaultRegistry());
+    private KafkaMetricsProcessorBuilder builder;
     private KafkaMetricsProcessor underlying;
     private Properties config;
     volatile private boolean running;
@@ -66,6 +65,7 @@ public class TopicReporter
     synchronized public void init(VerifiableProperties kafkaConfig) {
         if (!initialized) {
             this.config = kafkaConfig.props();
+            this.builder = forRegistry(Metrics.defaultRegistry());
             builder.configure(config);
             underlying = builder.build();
             initialized = true;
@@ -103,6 +103,7 @@ public class TopicReporter
 
     @Override
     public void init(List<org.apache.kafka.common.metrics.KafkaMetric> metrics) {
+        builder = forRegistry(new MetricsRegistry());
         builder.configure(config);
         builder.setKafkaMetrics(kafkaMetrics);
         for (org.apache.kafka.common.metrics.KafkaMetric metric : metrics) {

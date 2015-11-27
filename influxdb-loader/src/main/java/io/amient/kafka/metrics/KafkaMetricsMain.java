@@ -46,7 +46,7 @@ public class KafkaMetricsMain {
         Properties props = new Properties();
         props.put("zookeeper.connect", "localhost:2181");
         props.put("group.id", "kafka-metric-collector");
-        props.put("zookeeper.session.timeout.ms", "400");
+        props.put("zookeeper.session.timeout.ms", "2000");
         props.put("zookeeper.sync.time.ms", "200");
         props.put("auto.commit.interval.ms", "10000");
         props.put("auto.offset.reset", "smallest");
@@ -96,7 +96,7 @@ public class KafkaMetricsMain {
                     try {
                         MessageAndMetadata<String, MeasurementV1> m = it.next();
                         publisher.publish(m.message());
-                        formatter.writeTo(m.message(), System.out);
+                        //formatter.writeTo(m.message(), System.out);
                     } catch (RuntimeException e) {
                         log.error("Unable to publish measurement", e);
                     } catch (Throwable e) {
