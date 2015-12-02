@@ -53,7 +53,7 @@ public class KafkaMetricsProcessorBuilder {
     public KafkaMetricsProcessorBuilder configure(Properties config) {
         for (Enumeration<Object> e = config.keys(); e.hasMoreElements(); ) {
             Object propKey = e.nextElement();
-            configure((String) propKey, (String) config.get(propKey));
+            configure((String) propKey, config.get(propKey).toString());
         }
         if (!config.containsKey(CONFIG_BOOTSTRAP_SERVERS) && config.containsKey("port")) {
             //if this is plugged into kafka broker itself we can use it for metrics producer itself
