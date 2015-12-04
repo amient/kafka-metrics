@@ -119,7 +119,7 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
                         tags.put(tag.getKey(), tag.getValue());
                     }
                     Map<String, Double> fields = new HashMap<String, Double>();
-                    fields.put("value", value);
+                    fields.put("Value", value);
                     MeasurementV1 measurement = new MeasurementV1();
                     measurement.setTimestamp(timestamp);
                     measurement.setName(m.getKey().name());
@@ -146,11 +146,11 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
     @Override
     public void processMeter(MetricName name, Metered meter, Long timestamp) {
         Map<String, Double> fields = new HashMap<String, Double>();
-        fields.put("count", Double.valueOf(meter.count()));
-        fields.put("mean-rate", meter.meanRate());
-        fields.put("15-minute-rate", meter.fifteenMinuteRate());
-        fields.put("5-minute-rate", meter.fiveMinuteRate());
-        fields.put("1-minute-rate", meter.oneMinuteRate());
+        fields.put("Count", Double.valueOf(meter.count()));
+        fields.put("MeanRate", meter.meanRate());
+        fields.put("FifteenMinuteRate", meter.fifteenMinuteRate());
+        fields.put("FiveMinuteRate", meter.fiveMinuteRate());
+        fields.put("OneMinuteRate", meter.oneMinuteRate());
 
         publish(createMeasurement(name, timestamp, fixedTags, fields));
     }
@@ -158,7 +158,7 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
     @Override
     public void processCounter(MetricName name, Counter counter, Long timestamp) {
         Map<String, Double> fields = new HashMap<String, Double>();
-        fields.put("count", Double.valueOf(counter.count()));
+        fields.put("Count", Double.valueOf(counter.count()));
         publish(createMeasurement(name, timestamp, fixedTags, fields));
     }
 
@@ -168,7 +168,7 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
         try {
             Double value = formatter.anyValueToDouble(gauge.value());
             if (value != null) {
-                fields.put("value", value);
+                fields.put("Value", value);
                 publish(createMeasurement(name, timestamp, fixedTags, fields));
             }
         } catch (Exception e) {
@@ -179,28 +179,28 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
     @Override
     public void processHistogram(MetricName name, Histogram histogram, Long timestamp) {
         Map<String, Double> fields = new HashMap<String, Double>();
-        fields.put("count", Double.valueOf(histogram.count()));
-        fields.put("max", histogram.max());
-        fields.put("mean", histogram.mean());
-        fields.put("min", histogram.min());
-        fields.put("stdDev", histogram.stdDev());
-        fields.put("sum", histogram.sum());
+        fields.put("Count", Double.valueOf(histogram.count()));
+        fields.put("Max", histogram.max());
+        fields.put("Mean", histogram.mean());
+        fields.put("Min", histogram.min());
+        fields.put("StdDev", histogram.stdDev());
+        fields.put("Sum", histogram.sum());
         publish(createMeasurement(name, timestamp, fixedTags, fields));
     }
 
     @Override
     public void processTimer(MetricName name, Timer timer, Long timestamp) {
         Map<String, Double> fields = new HashMap<String, Double>();
-        fields.put("count", Double.valueOf(timer.count()));
-        fields.put("mean-rate", timer.meanRate());
-        fields.put("15-minute-rate", timer.fifteenMinuteRate());
-        fields.put("5-minute-rate", timer.fiveMinuteRate());
-        fields.put("1-minute-rate", timer.oneMinuteRate());
-        fields.put("max", timer.max());
-        fields.put("mean", timer.mean());
-        fields.put("min", timer.min());
-        fields.put("stdDev", timer.stdDev());
-        fields.put("sum", timer.sum());
+        fields.put("Count", Double.valueOf(timer.count()));
+        fields.put("MeanRate", timer.meanRate());
+        fields.put("FifteenMinuteRate", timer.fifteenMinuteRate());
+        fields.put("FiveMinuteRate", timer.fiveMinuteRate());
+        fields.put("OneMinuteRate", timer.oneMinuteRate());
+        fields.put("Max", timer.max());
+        fields.put("Mean", timer.mean());
+        fields.put("Min", timer.min());
+        fields.put("StdDev", timer.stdDev());
+        fields.put("Sum", timer.sum());
         publish(createMeasurement(name, timestamp, fixedTags, fields));
     }
 

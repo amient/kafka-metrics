@@ -31,10 +31,10 @@ import java.util.concurrent.TimeUnit;
 public class InfluxDbPublisher implements MeasurementPublisher {
 
     static private final Logger log = LoggerFactory.getLogger(InfluxDbPublisher.class);
-    static final String COFNIG_INFLUXDB_DATABASE = "kafka.metrics.influxdb.database";
-    static final String COFNIG_INFLUXDB_URL = "kafka.metrics.influxdb.url";
-    static final String COFNIG_INFLUXDB_USERNAME = "kafka.metrics.influxdb.username";
-    static final String COFNIG_INFLUXDB_PASSWORD = "kafka.metrics.influxdb.password";
+    static final String COFNIG_INFLUXDB_DATABASE = "influxdb.database";
+    static final String COFNIG_INFLUXDB_URL = "influxdb.url";
+    static final String COFNIG_INFLUXDB_USERNAME = "influxdb.username";
+    static final String COFNIG_INFLUXDB_PASSWORD = "influxdb.password";
     final private InfluxDB influxDB;
     final private String dbName;
     final private String address;
@@ -53,8 +53,8 @@ public class InfluxDbPublisher implements MeasurementPublisher {
         for (java.util.Map.Entry<CharSequence, CharSequence> tag : m.getTags().entrySet()) {
             builder.tag(tag.getKey().toString(), tag.getValue().toString());
         }
-        for (java.util.Map.Entry<CharSequence, Double> fiekd : m.getFields().entrySet()) {
-            builder.field(fiekd.getKey().toString(), fiekd.getValue());
+        for (java.util.Map.Entry<CharSequence, Double> field : m.getFields().entrySet()) {
+            builder.field(field.getKey().toString(), field.getValue());
         }
         influxDB.write(dbName, "default", builder.build());
     }
