@@ -43,7 +43,7 @@ public class KafkaMetricsProcessorBuilder {
     private Map<MetricName, KafkaMetric> kafkaMetrics = null;
     private Map<String, String> tags = new HashMap<String, String>();
     private String topic = "_metrics";
-    private String bootstrapServers = "localhost:9092";
+    private String bootstrapServers;
     private Integer pollingIntervalSeconds = 10;
 
     public KafkaMetricsProcessorBuilder(MetricsRegistry registry) {
@@ -51,10 +51,6 @@ public class KafkaMetricsProcessorBuilder {
     }
 
     public KafkaMetricsProcessorBuilder configure(Properties config) {
-        for (Enumeration<Object> e = config.keys(); e.hasMoreElements(); ) {
-            Object propKey = e.nextElement();
-            configure((String) propKey, config.get(propKey).toString());
-        }
         if (!config.containsKey(CONFIG_BOOTSTRAP_SERVERS) && config.containsKey("port")) {
             //if this is plugged into kafka broker itself we can use it for metrics producer itself
             config.put(CONFIG_BOOTSTRAP_SERVERS, "localhost:" + config.get("port"));
@@ -62,6 +58,11 @@ public class KafkaMetricsProcessorBuilder {
         if (config.containsKey("bootstrap.servers") && !config.containsKey(CONFIG_BOOTSTRAP_SERVERS)) {
             //if plugged into kafka producer and bootstrap servers not specified, re-use the wrapping producer's ones
             config.put(CONFIG_BOOTSTRAP_SERVERS, config.getProperty("bootstrap.servers"));
+        }
+
+        for (Enumeration<Object> e = config.keys(); e.hasMoreElements(); ) {
+            Object propKey = e.nextElement();
+            configure((String) propKey, config.get(propKey).toString());
         }
         return this;
     }
