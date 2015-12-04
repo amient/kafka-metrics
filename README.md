@@ -100,22 +100,21 @@ Using kafka console consumer with a formatter for kafka-metrics:
 ## Development
 </a>
 
-- TODO: Add option for KafkaMetricsMain to scan JMX beans via JMX port instead of consuming _metrics topic 
+- TODO: Decompose dot-separated scope created by kafka yammer reporter into tags 
 - TODO: sphinx documentation using generated versions in the examples and try to back-port to kafka 0.7 and forward port to kafka 0.9
 - TODO: expose all except serde configs for kafka producer (NEW) configuration properties - namespace them all with kafka.metrics.producer...
 - DESIGN: should `_metrics` topic represent only per cluster metric stream, NEVER aggregate, and have aggregate have `_metrics_aggregated` or something ?
    - this requires the prism feature for topic name prefix/suffix 
 - Complete configuration file "kafka-metrics.properties" with env.var overrides
-- [Scripted Grafana dashboard](http://docs.grafana.org/reference/scripting/)  (kafka, prism) 
-- Draw design doc with clear docker image boundaries
-    - docker image for Kafka Metrics Instance:
-        - Go 1.4
-        - InfluxDB 0.9 + pre-configured metrics database
-        - Grafana 2.4 - how to pre-configure dashboards ??
-        - node (v0.12.0)
-        - npm (v2.5.0)
-        - grunt (v0.4.5)
-        - java 1.6+
-        - MetricsInfluxDbPublisher
+- [Scripted Grafana dashboard](http://docs.grafana.org/reference/scripting/)  (kafka, prism)
+- Draw design doc 
+- Consider writing the influxdb-loader as golang kafka consumer which would lead to a kafka-metrics instance
+    - Go 1.4
+    - MetricsInfluxDbPublisher (Go)
+    - InfluxDB 0.9 (Go)
+    - Grafana 2.4 (Go)
+    - node (v0.12.0)
+    - npm (v2.5.0)
+    - grunt (v0.4.5)
 
 

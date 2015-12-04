@@ -38,7 +38,7 @@ import java.util.concurrent.Executors;
 
 public class KafkaMetricsMain {
 
-    static private final Logger log = LoggerFactory.getLogger(InfluxDbPublisher.class);
+    static private final Logger log = LoggerFactory.getLogger(KafkaMetricsMain.class);
 
     public static void main(String[] args) throws InterruptedException {
         String topic = "_metrics";

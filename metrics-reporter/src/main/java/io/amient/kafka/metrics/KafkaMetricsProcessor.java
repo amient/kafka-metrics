@@ -34,6 +34,7 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
     private static final Logger log = LoggerFactory.getLogger(KafkaMetricsProcessor.class);
 
     private final MeasurementPublisher publisher;
+    private final MeasurementFormatter formatter;
     private final Clock clock;
 
     private final Map<org.apache.kafka.common.MetricName, KafkaMetric> kafkaMetrics;
@@ -52,6 +53,7 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
         this.clock = Clock.defaultClock();
         this.fixedTags = fixedTags;
         this.publisher = publisher;
+        this.formatter = new MeasurementFormatter();
         this.pollingIntervalSeconds = pollingIntervalSeconds;
     }
 
@@ -152,22 +154,11 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
     public void processGauge(MetricName name, Gauge<?> gauge, Long timestamp) {
         Map<String, Double> fields = new HashMap<String, Double>();
         try {
-            if (gauge.value() instanceof Double) {
-                Double value = ((Double) gauge.value());
-                if (!value.isNaN() && !value.isInfinite()) {
-                    fields.put("value", value);
-                }
-            } else if ((gauge.value() instanceof Long) || (gauge.value() instanceof Integer)) {
-                fields.put("value", Double.valueOf(gauge.value().toString()));
-            } else if ((gauge.value() instanceof Float)) {
-                Float value = ((Float) gauge.value());
-                if (!value.isNaN() && !value.isInfinite()) {
-                    fields.put("value", ((Float) gauge.value()).doubleValue());
-                }
-            } else {
-                return;
+            Double value = formatter.anyValueToDouble(gauge.value());
+            if (value != null) {
+                fields.put("value", value);
+                publish(createMeasurement(name, timestamp, fixedTags, fields));
             }
-            publish(createMeasurement(name, timestamp, fixedTags, fields));
         } catch (Exception e) {
             log.warn("Could not process gauge for metric " + name +": " + e.getMessage());
         }

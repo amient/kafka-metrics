@@ -71,4 +71,25 @@ public class MeasurementFormatter extends MeasurementDeserializer implements Mes
     public void close() {
 
     }
+
+    public Double anyValueToDouble(Object anyValue) {
+        if (anyValue instanceof Double) {
+            Double value = ((Double) anyValue);
+            if (!value.isNaN() && !value.isInfinite()) {
+                return value;
+            }
+        } else if ((anyValue instanceof Float)) {
+            Float value = ((Float) anyValue);
+            if (!value.isNaN() && !value.isInfinite()) {
+                return ((Float) anyValue).doubleValue();
+            }
+        } else if ((anyValue instanceof Long)
+                || (anyValue instanceof Integer)
+                || (anyValue instanceof Short)
+                || (anyValue instanceof Byte)) {
+            return Double.valueOf(anyValue.toString());
+        }
+        return null;
+
+    }
 }
