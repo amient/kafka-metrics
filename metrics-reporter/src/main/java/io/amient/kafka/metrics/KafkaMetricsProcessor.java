@@ -47,7 +47,7 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
             MeasurementPublisher publisher,
             Map<String, String> fixedTags,
             Integer pollingIntervalSeconds
-            ) {
+    ) {
         super(metricsRegistry, "streaming-reporter");
         this.kafkaMetrics = kafkaMetrics;
         this.clock = Clock.defaultClock();
@@ -62,14 +62,26 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
     }
 
     private MeasurementV1 createMeasurement(com.yammer.metrics.core.MetricName name,
-            Long timestamp, Map<String,String> tags, Map<String,Double> fields) {
+                                            Long timestamp, Map<String, String> tags, Map<String, Double> fields) {
         MeasurementV1 measurement = new MeasurementV1();
         measurement.setTimestamp(timestamp);
         measurement.setName(name.getName());
         measurement.setTags(new HashMap<CharSequence, CharSequence>(tags));
         if (name.getGroup() != null && !name.getGroup().isEmpty()) measurement.getTags().put("group", name.getGroup());
         if (name.getType() != null && !name.getType().isEmpty()) measurement.getTags().put("type", name.getType());
-        if (name.getScope() != null && !name.getScope().isEmpty()) measurement.getTags().put("scope", name.getScope());
+        if (name.getScope() != null && !name.getScope().isEmpty()) {
+            if (name.getGroup() != null && name.getGroup().startsWith("kafka.") && name.getScope().contains(".")) {
+                /*
+                 * Decompose old kafka metrics tags which uses yammer metrics Scope to "squash" all tags together
+                 */
+                String[] scope = name.getScope().split("\\.");
+                for(int s=0; s < scope.length; s += 2) {
+                    measurement.getTags().put(scope[s], scope[s+1]);
+                }
+            } else {
+                measurement.getTags().put("scope", name.getScope());
+            }
+        }
         measurement.setFields(new HashMap<CharSequence, Double>(fields));
         return measurement;
     }
@@ -97,25 +109,25 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
         final Long timestamp = clock.time();
         //process kafka metrics
         if (kafkaMetrics != null)
-            for(Map.Entry<org.apache.kafka.common.MetricName, org.apache.kafka.common.metrics.KafkaMetric> m
-                : kafkaMetrics.entrySet()) {
-            Double value = m.getValue().value();
-            if (!value.isNaN() && !value.isInfinite()) {
-                Map<String,String> tags = new HashMap<String, String>(fixedTags);
-                tags.put("group", m.getKey().group());
-                for (Map.Entry<String, String> tag : m.getValue().metricName().tags().entrySet()) {
-                    tags.put(tag.getKey(), tag.getValue());
+            for (Map.Entry<org.apache.kafka.common.MetricName, org.apache.kafka.common.metrics.KafkaMetric> m
+                    : kafkaMetrics.entrySet()) {
+                Double value = m.getValue().value();
+                if (!value.isNaN() && !value.isInfinite()) {
+                    Map<String, String> tags = new HashMap<String, String>(fixedTags);
+                    tags.put("group", m.getKey().group());
+                    for (Map.Entry<String, String> tag : m.getValue().metricName().tags().entrySet()) {
+                        tags.put(tag.getKey(), tag.getValue());
+                    }
+                    Map<String, Double> fields = new HashMap<String, Double>();
+                    fields.put("value", value);
+                    MeasurementV1 measurement = new MeasurementV1();
+                    measurement.setTimestamp(timestamp);
+                    measurement.setName(m.getKey().name());
+                    measurement.setTags(new HashMap<CharSequence, CharSequence>(tags));
+                    measurement.setFields(new HashMap<CharSequence, Double>(fields));
+                    publish(measurement);
                 }
-                Map<String, Double> fields = new HashMap<String, Double>();
-                fields.put("value", value);
-                MeasurementV1 measurement = new MeasurementV1();
-                measurement.setTimestamp(timestamp);
-                measurement.setName(m.getKey().name());
-                measurement.setTags(new HashMap<CharSequence, CharSequence>(tags));
-                measurement.setFields(new HashMap<CharSequence, Double>(fields));
-                publish(measurement);
             }
-        }
         //process yammer metrics
         final Set<Map.Entry<MetricName, Metric>> metrics = getMetricsRegistry().allMetrics().entrySet();
         try {
@@ -160,7 +172,7 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
                 publish(createMeasurement(name, timestamp, fixedTags, fields));
             }
         } catch (Exception e) {
-            log.warn("Could not process gauge for metric " + name +": " + e.getMessage());
+            log.warn("Could not process gauge for metric " + name + ": " + e.getMessage());
         }
     }
 
@@ -191,7 +203,6 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
         fields.put("sum", timer.sum());
         publish(createMeasurement(name, timestamp, fixedTags, fields));
     }
-
 
 
 }
