@@ -38,6 +38,8 @@ If you have a Kafka Broker running locally which has a JMX Server enabled say on
 ## Configuration Options for InfluxDB Loader
 </a>
 
+### InfluxDB back options
+
 parameter                                  | default                | description
 -------------------------------------------|------------------------|------------------------------------------------------------------------------
 **influxdb.database**                      | `metrics`              | InfluxDB Database Name where to publish the measurements 
@@ -45,6 +47,8 @@ parameter                                  | default                | descriptio
 **influxdb.username**                      | `root`                 | Authentication username for API calls
 **influxdb.password**                      | `root`                 | Authentication passord for API calls
 
+
+### JMX Scanner Options
 
 parameter                                  | default                | description
 -------------------------------------------|------------------------|------------------------------------------------------------------------------
@@ -54,6 +58,8 @@ jmx.<ENDPOINT_ID>.query.interval.s         | 10                     | how freque
 jmx.<ENDPOINT_ID>.tag.<TAG-1>              | -                      | optinal tags which will be attached to each measurement  
 jmx.<ENDPOINT_ID>.tag....                  | -                      | ...
 jmx.<ENDPOINT_ID>.tag.<TAG-n>              | -                      | ...
+
+### Metrics Consumer Options
 
 parameter                                  | default                | description
 -------------------------------------------|------------------------|------------------------------------------------------------------------------
@@ -73,7 +79,6 @@ TopicReporter class. To be able to use the reporter as plug-in for kafka brokers
 packaged jar in their classpath, which in kafka broker means putting it in the kafka /libs directory:
 
 ```
-mvn clean package
 cp stream-reporter/target/stream-reporter-<kafka-version>.jar $KAFKA_HOME/libs/
 ```
 
@@ -132,7 +137,7 @@ reporter.start(10, TimeUnit.SECONDS);
 ```
 
 <a name="configuration-reporter">
-## Configuration Options for the Reporter
+## Configuration Options for the TopicReporter
 </a>
 
 parameter                                  | default           | description
@@ -165,14 +170,17 @@ Using kafka console consumer with a formatter for kafka-metrics:
 ## Development
 </a>
  
-- TODO: explore influxdb retention options
-- TODO: sphinx documentation using generated versions in the examples and try to back-port to kafka 0.7 and forward port to kafka 0.9
+- DOC: draw different deployment setups 
+- DOC: provide recipe and bin script for local setup with influxdb and grafana
+- DOC: sphinx documentation using generated versions in the examples
 - TODO: expose all except serde configs for kafka producer (NEW) configuration properties
-- TODO: configurable log4j.properties file location and enironment var overrides for configs 
+- TODO: configurable log4j.properties file location and enironment var overrides for configs
+- DESIGN: explore back-port to kafka 0.7
+- DESIGN: explore influxdb retention options
 - DESIGN: [Scripted Grafana dashboard](http://docs.grafana.org/reference/scripting/)  (kafka, prism)
 - DESIGN: should `_metrics` topic represent only per cluster metric stream, NEVER aggregate, and have aggregate have `_metrics_aggregated` or something ?
    - this requires the prism feature for topic name prefix/suffix 
-- Consider writing the influxdb-loader as golang kafka consumer which would lead to a kafka-metrics instance
+- DESIGN: Consider writing the influxdb-loader as golang kafka consumer which would lead to a kafka-metrics instance
     - Go 1.4
     - MetricsInfluxDbPublisher (Go)
     - InfluxDB 0.9 (Go)
