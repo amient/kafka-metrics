@@ -100,6 +100,7 @@ Using kafka console consumer with a formatter for kafka-metrics:
 ## Development
 </a>
  
+- TODO: explore influxdb retention options
 - TODO: sphinx documentation using generated versions in the examples and try to back-port to kafka 0.7 and forward port to kafka 0.9
 - TODO: expose all except serde configs for kafka producer (NEW) configuration properties - namespace them all with kafka.metrics.producer...
 - DESIGN: should `_metrics` topic represent only per cluster metric stream, NEVER aggregate, and have aggregate have `_metrics_aggregated` or something ?

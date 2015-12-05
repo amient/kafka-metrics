@@ -97,14 +97,17 @@ public class JMXScannerTask implements Runnable {
     @Override
     public void run() {
         try {
+            final long timestamp = clock.time();
             Set<ObjectInstance> beans = conn.queryMBeans(all, null);
             for (ObjectInstance i : beans) {
-                MeasurementV1 measurement = createMeasurement(i);
-                if (measurement.getFields().size() == 0) {
-                    formatter.writeTo(measurement, System.err);
-                } else {
-                    publisher.publish(measurement);
-                    //formatter.writeTo(measurement, System.out);
+                MeasurementV1[] measurements = extractMeasurements(i, timestamp);
+                for (MeasurementV1 measurement : measurements) {
+                    if (measurement.getFields().size() == 0) {
+                        formatter.writeTo(measurement, System.err);
+                    } else {
+                        publisher.publish(measurement);
+                        //formatter.writeTo(measurement, System.out);
+                    }
                 }
 
             }
@@ -113,11 +116,16 @@ public class JMXScannerTask implements Runnable {
         }
     }
 
-    private MeasurementV1 createMeasurement(ObjectInstance i)
+    private MeasurementV1[] extractMeasurements(ObjectInstance i, Long timestamp)
             throws IntrospectionException, ReflectionException, InstanceNotFoundException, IOException, AttributeNotFoundException, MBeanException {
         ObjectName name = i.getObjectName();
+
+        if (name.getKeyProperty("name") == null) {
+            return extractAttributesAsMeasurements(i, timestamp);
+        }
+
         MeasurementV1 measurement = new MeasurementV1();
-        measurement.setTimestamp(clock.time());
+        measurement.setTimestamp(timestamp);
         measurement.setName(name.getKeyProperty("name"));
         measurement.setTags(new LinkedHashMap<CharSequence, CharSequence>(tags));
         measurement.getTags().put("group", name.getDomain());
@@ -136,7 +144,35 @@ public class JMXScannerTask implements Runnable {
         }
 
         measurement.setFields(new HashMap<CharSequence, Double>(fields));
-        return measurement;
+        return new MeasurementV1[]{measurement};
 
+    }
+
+    private MeasurementV1[] extractAttributesAsMeasurements(ObjectInstance i, Long timestamp)
+            throws IntrospectionException, ReflectionException, InstanceNotFoundException, IOException, AttributeNotFoundException, MBeanException {
+        ObjectName name = i.getObjectName();
+        MBeanInfo info = conn.getMBeanInfo(name);
+        MBeanAttributeInfo[] attributes = info.getAttributes();
+        MeasurementV1[] result = new MeasurementV1[attributes.length];
+        int k = 0;
+        for (MBeanAttributeInfo attr : info.getAttributes()) {
+            MeasurementV1 measurement = new MeasurementV1();
+            measurement.setTimestamp(timestamp);
+            measurement.setName(attr.getName());
+            measurement.setTags(new LinkedHashMap<CharSequence, CharSequence>(tags));
+            measurement.getTags().put("group", name.getDomain());
+            for (Map.Entry<String, String> tag: name.getKeyPropertyList().entrySet()) {
+                measurement.getTags().put(tag.getKey(), tag.getValue());
+            }
+
+            Double value = formatter.anyValueToDouble(conn.getAttribute(name, attr.getName()));
+            HashMap<String, Double> fields = new HashMap<String, Double>();
+            if (value != null)
+                fields.put("Value", value);
+            measurement.setFields(new HashMap<CharSequence, Double>(fields));
+            result[k++] = measurement;
+        }
+
+        return result;
     }
 }

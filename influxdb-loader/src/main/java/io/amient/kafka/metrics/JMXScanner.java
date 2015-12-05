@@ -46,8 +46,8 @@ public class JMXScanner {
         props.put(InfluxDbPublisher.COFNIG_INFLUXDB_PASSWORD, "root");
 
         props.put("jmx.1.address", "localhost:19092");
-        props.put("jmx.1.queryScope.scope", "kafka");
-        props.put("jmx.1.queryScope.interval.s", "10");
+        props.put("jmx.1.query.scope", "kafka");
+        props.put("jmx.1.query.interval.s", "10");
         props.put("jmx.1.tag.cluster", "a");
         props.put("jmx.1.tag.host", "host-001");
         props.put("jmx.1.tag.service", "broker-0");
@@ -79,14 +79,15 @@ public class JMXScanner {
                 if (!jmxConfigs.containsKey(id)) jmxConfigs.put(id, new JMXScannerConfig());
                 JMXScannerConfig jmxConfig = jmxConfigs.get(id);
                 propKey = propKey.substring(idLen);
+                log.info(propKey + "=" + propVal);
                 if (propKey.startsWith("tag.")) {
                     propKey = propKey.substring(4);
                     jmxConfig.setTag(propKey, propVal);
                 } else if (propKey.equals("address")) {
                     jmxConfig.setAddress(propVal);
-                } else if (propKey.equals("queryScope.scope")) {
+                } else if (propKey.equals("query.scope")) {
                     jmxConfig.setQueryScope(propVal);
-                } else if (propKey.equals("queryScope.interval.s")) {
+                } else if (propKey.equals("query.interval.s")) {
                     jmxConfig.setQueryInterval(Long.parseLong(propVal));
                 }
             }

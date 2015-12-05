@@ -67,15 +67,24 @@ public class ConsumerMetrics {
     public ConsumerMetrics(Properties props) {
         String topic = props.getProperty("consumer.topic", "_metrics");
         Integer numThreads = Integer.parseInt(props.getProperty("consumer.numThreads", "1"));
+        executor = Executors.newFixedThreadPool(numThreads);
 
         Properties consumerProps = new Properties();
         for (Enumeration<Object> e = props.keys(); e.hasMoreElements(); ) {
             String propKey = (String) e.nextElement();
             String propVal = props.get(propKey).toString();
             if (propKey.startsWith("consumer.")) {
-                consumerProps.put(propKey.substring(9), propVal);
+                propKey = propKey.substring(9);
+                consumerProps.put(propKey, propVal);
+                log.info(propKey + "=" + propVal);
             }
         }
+
+        if (consumerProps.size() ==0) {
+            log.info("ConsumerMetrics disabled: " + executor.isTerminated());
+            return;
+        }
+
         VerifiableProperties config = new VerifiableProperties(consumerProps);
         ConsumerConnector consumer = kafka.consumer.Consumer.createJavaConsumerConnector(
                 new ConsumerConfig(config.props()));
@@ -86,7 +95,6 @@ public class ConsumerMetrics {
                 = consumer.createMessageStreams(topicCountMap, new StringDecoder(config), new MeasurementDecoder(config));
 
         List<KafkaStream<String, MeasurementV1>> streams = consumerMap.get(topic);
-        executor = Executors.newFixedThreadPool(numThreads);
 
         for (final KafkaStream<String, MeasurementV1> stream : streams) {
             executor.submit(new Task(new InfluxDbPublisher(props), stream));
