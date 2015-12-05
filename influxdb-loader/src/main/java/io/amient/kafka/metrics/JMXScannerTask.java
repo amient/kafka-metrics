@@ -46,8 +46,8 @@ public class JMXScannerTask implements Runnable {
 
         private final Map<String, String> tags = new LinkedHashMap<String, String>();
         private String address;
-        private String queryScope;
-        private long queryIntervalSeconds;
+        private String queryScope = "kafka";
+        private long queryIntervalSeconds = 10;
 
         public void setTag(String propKey, String propVal) {
             this.tags.put(propKey, propVal);

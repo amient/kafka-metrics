@@ -1,16 +1,76 @@
 # Kafka Metrics  <sup><sup>:no_entry_sign: UNDER CONSTRUCTION</sup></sup>
 
-This is a basic structure centered around a single topic 'metrics'. The basic module provides a reporter which 
-can be used by kafka broker, kafka producer or consumer and other applications and services which use yammer metrics
-library.
+This is a system whose purpose is to aggregate metrics from a topology of Kafka Brokers, Prisms, Producer and Consumer
+applications. It uses InfluxDB as the time series back-end which can then be used for example with Grafana front-end
+or other visualisation and alerting tools.
+
+There are 2 primary ways of how the aggregation of metrics from several components is achieved. 
+
+For smaller infrastructures consisting of small number of clusters in proximity to each other, direct JMX scanner tasks 
+can be configured for each JMX Server exposed in the infrastructure and application landscape. This method doesn't
+require to include any extra code in the monitored applications as long as they already expsoe JMX MBeans.
+
+For larger, globally distributed infrastructures, or if more fault-tolerance is required for the metrics aggregation, 
+a TopicReporter which implements Yammer Metrics Reporter interface as well as Kafka-specific internal reporters. 
+This reporter publishes all the metrics to configured, most often local kafka topic `_metrics`. The JMX Scanner 
+aggregator is then replaced with Kafka Metrics Consumer  aggregator which then publishes these metrics into the InfluxDB.
+For multi-DC, potentially global deployments, Kafka Prism or Kafka Mirror Maker maker can placed between 
+the Kafka Metrics Consumer and the disparate metrics streams, first aggregating them in a single cluster.
+
+<a name="quickstart">
+## QuickStart
+</a>
+
+You'll need to install at least InfluxDB Server with defaults, then package all modules:
+
+```
+mvn clean package
+```
+
+If you have a Kafka Broker running locally which has a JMX Server enabled say on port 19092, you can use 
+ the following default config file for jmx scanner local aggrgator: 
+
+```
+./influxdb-loader/bin/run-influxdb-loader.sh influxdb-loader/conf/local-jmx.properties
+```
+
+<a name="configuration-loader">
+## Configuration Options for InfluxDB Loader
+</a>
+
+parameter                                  | default                | description
+-------------------------------------------|------------------------|------------------------------------------------------------------------------
+**influxdb.database**                      | `metrics`              | InfluxDB Database Name where to publish the measurements 
+**influxdb.url**                           | `http://localhost:8086`| URL of the InfluxDB API Instance
+**influxdb.username**                      | `root`                 | Authentication username for API calls
+**influxdb.password**                      | `root`                 | Authentication passord for API calls
+
+
+parameter                                  | default                | description
+-------------------------------------------|------------------------|------------------------------------------------------------------------------
+jmx.<ENDPOINT_ID>.address                  | -                      | Address of the JMX Service Endpoint 
+jmx.<ENDPOINT_ID>.query.scope              | `kafka`                | this will be used to filer object names in the JMX Server registry, i.e. `kafka.*:*`
+jmx.<ENDPOINT_ID>.query.interval.s         | 10                     | how frequently to query the JMX Service 
+jmx.<ENDPOINT_ID>.tag.<TAG-1>              | -                      | optinal tags which will be attached to each measurement  
+jmx.<ENDPOINT_ID>.tag....                  | -                      | ...
+jmx.<ENDPOINT_ID>.tag.<TAG-n>              | -                      | ...
+
+parameter                                  | default                | description
+-------------------------------------------|------------------------|------------------------------------------------------------------------------
+consumer.topic                             | `_metrics`             | Topic to consumer (where measurements are published by Reporter)
+consumer.numThreads                        | `1`                    | Number of consumer threads
+consumer.zookeeper.connect                 | `localhost:2181`       | As per [Kafka Consumer Configuration](http://kafka.apache.org/documentation.html#consumerconfigs)
+consumer.group.id                          | -                      | As per Any [Kafka Consumer Configuration](http://kafka.apache.org/documentation.html#consumerconfigs)
+consumer....                               | -                      | Any other [Kafka Consumer Configuration](http://kafka.apache.org/documentation.html#consumerconfigs)
+
  
-<a name="usage">
-## Usage
+<a name="usage-reporter">
+## Usage of the TopicReporter
 </a>
 
 Due to different stage of maturity of various kafka components, watch out for subtle differences when adding 
 TopicReporter class. To be able to use the reporter as plug-in for kafka brokers and tools you need to put the
-pacakaged jar in the kafka/libs directory:
+packaged jar in their classpath, which in kafka broker means putting it in the kafka /libs directory:
 
 ```
 mvn clean package
@@ -54,7 +114,7 @@ will produce kafka-metrics messages to a configured topic every given time inter
 ``` 
 val registry = MetricsRegistry.defaultRegistry()
 val reporter = TopicReporter.forRegistry(registry)
-    .setTopic("_metrics) //this is also default
+    .setTopic("_metrics") //this is also default
     .setBootstrapServers("kafka1:9092,kafka2:9092")
     .setTag("host", "my-host-xyz")
     .setTag("app", "my-app-name")
@@ -71,8 +131,8 @@ val reporter = TopicReporter.forRegistry(registry).configure(config).build()
 reporter.start(10, TimeUnit.SECONDS);
 ```
 
-<a name="configuration">
-## Configuration Options
+<a name="configuration-reporter">
+## Configuration Options for the Reporter
 </a>
 
 parameter                                  | default           | description
@@ -81,6 +141,11 @@ parameter                                  | default           | description
 **kafka.metrics.polling.interval**         | `10s`             | Poll and publish frequency of metrics, llowed interval values: 1s, 10s, 1m
 **kafka.metrics.bootstrap.servers**        | *inferred*        | Coma-separated list of kafka server addresses (host:port). When used in Brokers, `localhost` is default.
 *kafka.metrics.tag.<tag-name>.<tag=value>* | -                 | Fixed name-value pairs that will be used as tags in the published measurement for this instance, .e.g `kafka.metrics.tag.host.my-host-01` or `kafka.metrics.tag.dc.uk-az1`  
+
+
+<a name="configuration">
+## Configuration Options for the Reporter
+</a>
 
 
 <a name="operations">
@@ -102,12 +167,11 @@ Using kafka console consumer with a formatter for kafka-metrics:
  
 - TODO: explore influxdb retention options
 - TODO: sphinx documentation using generated versions in the examples and try to back-port to kafka 0.7 and forward port to kafka 0.9
-- TODO: expose all except serde configs for kafka producer (NEW) configuration properties - namespace them all with kafka.metrics.producer...
+- TODO: expose all except serde configs for kafka producer (NEW) configuration properties
+- TODO: configurable log4j.properties file location and enironment var overrides for configs 
+- DESIGN: [Scripted Grafana dashboard](http://docs.grafana.org/reference/scripting/)  (kafka, prism)
 - DESIGN: should `_metrics` topic represent only per cluster metric stream, NEVER aggregate, and have aggregate have `_metrics_aggregated` or something ?
    - this requires the prism feature for topic name prefix/suffix 
-- Complete configuration file "kafka-metrics.properties" with env.var overrides
-- [Scripted Grafana dashboard](http://docs.grafana.org/reference/scripting/)  (kafka, prism)
-- Draw design doc 
 - Consider writing the influxdb-loader as golang kafka consumer which would lead to a kafka-metrics instance
     - Go 1.4
     - MetricsInfluxDbPublisher (Go)
