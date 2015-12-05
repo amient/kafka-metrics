@@ -52,12 +52,12 @@ parameter                                  | default                | descriptio
 
 parameter                                  | default                | description
 -------------------------------------------|------------------------|------------------------------------------------------------------------------
-jmx.<ENDPOINT_ID>.address                  | -                      | Address of the JMX Service Endpoint 
-jmx.<ENDPOINT_ID>.query.scope              | `kafka`                | this will be used to filer object names in the JMX Server registry, i.e. `kafka.*:*`
-jmx.<ENDPOINT_ID>.query.interval.s         | 10                     | how frequently to query the JMX Service 
-jmx.<ENDPOINT_ID>.tag.<TAG-1>              | -                      | optinal tags which will be attached to each measurement  
-jmx.<ENDPOINT_ID>.tag....                  | -                      | ...
-jmx.<ENDPOINT_ID>.tag.<TAG-n>              | -                      | ...
+jmx.{ENDPOINT_ID}.address                  | -                      | Address of the JMX Service Endpoint 
+jmx.{ENDPOINT_ID}.query.scope              | `kafka`                | this will be used to filer object names in the JMX Server registry, i.e. `kafka.*:*`
+jmx.{ENDPOINT_ID}.query.interval.s         | 10                     | how frequently to query the JMX Service 
+jmx.{ENDPOINT_ID}.tag.<TAG-1>              | -                      | optinal tags which will be attached to each measurement  
+jmx.{ENDPOINT_ID}.tag....                  | -                      | ...
+jmx.{ENDPOINT_ID}.tag.<TAG-n>              | -                      | ...
 
 ### Metrics Consumer Options
 
