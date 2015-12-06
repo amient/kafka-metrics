@@ -180,7 +180,7 @@ Using kafka console consumer with a formatter for kafka-metrics:
 - DESIGN: [Scripted Grafana dashboard](http://docs.grafana.org/reference/scripting/)  (kafka, prism)
 - DESIGN: should `_metrics` topic represent only per cluster metric stream, NEVER aggregate, and have aggregate have `_metrics_aggregated` or something ?
    - this requires the prism feature for topic name prefix/suffix 
-- DESIGN: Consider writing the influxdb-loader as golang kafka consumer which would lead to a kafka-metrics instance
+- TODO: go+influxdb+npm+grafana for debian, consider writing the influxdb-loader as golang kafka consumer which would lead to a kafka-metrics instance
     - Go 1.4
     - MetricsInfluxDbPublisher (Go)
     - InfluxDB 0.9 (Go)

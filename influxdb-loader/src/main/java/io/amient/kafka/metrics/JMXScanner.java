@@ -95,6 +95,8 @@ public class JMXScanner {
 
         jmxScanExecutor = Executors.newScheduledThreadPool(jmxConfigs.size());
         for (JMXScannerConfig jmxConfig : jmxConfigs.values()) {
+            log.info("Starting JMXScannerTask for " + jmxConfig.getAddress()
+                    + " every " + jmxConfig.getQueryIntervalSeconds() + " seconds");
             JMXScannerTask jmxScanner = new JMXScannerTask(jmxConfig, new InfluxDbPublisher(props));
             jmxScanExecutor.scheduleAtFixedRate(jmxScanner, 0, jmxConfig.getQueryIntervalSeconds(), TimeUnit.SECONDS);
         }

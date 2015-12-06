@@ -21,6 +21,7 @@ package io.amient.kafka.metrics;
 
 import com.yammer.metrics.core.*;
 import com.yammer.metrics.reporting.AbstractPollingReporter;
+import com.yammer.metrics.stats.Snapshot;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -185,6 +186,11 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
         fields.put("Min", histogram.min());
         fields.put("StdDev", histogram.stdDev());
         fields.put("Sum", histogram.sum());
+        Snapshot snapshot = histogram.getSnapshot();
+        fields.put("95thPercentile", snapshot.get95thPercentile());
+        fields.put("98thPercentile", snapshot.get98thPercentile());
+        fields.put("99thPercentile", snapshot.get99thPercentile());
+        fields.put("999thPercentile", snapshot.get999thPercentile());
         publish(createMeasurement(name, timestamp, fixedTags, fields));
     }
 
