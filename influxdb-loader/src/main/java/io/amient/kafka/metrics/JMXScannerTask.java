@@ -28,7 +28,10 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 
 public class JMXScannerTask implements Runnable {
 
@@ -138,9 +141,13 @@ public class JMXScannerTask implements Runnable {
         HashMap<String, Double> fields = new HashMap<String, Double>();
         MBeanInfo info = conn.getMBeanInfo(name);
         for (MBeanAttributeInfo attr : info.getAttributes()) {
-            Double value = formatter.anyValueToDouble(conn.getAttribute(name, attr.getName()));
-            if (value != null)
-                fields.put(attr.getName(), value);
+            try {
+                Double value = formatter.anyValueToDouble(conn.getAttribute(name, attr.getName()));
+                if (value != null)
+                    fields.put(attr.getName(), value);
+            } catch (RuntimeMBeanException e) {
+                log.warn("could not cast " + name +" into double value ", e);
+            }
         }
 
         measurement.setFields(new HashMap<CharSequence, Double>(fields));

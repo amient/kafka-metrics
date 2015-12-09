@@ -173,6 +173,7 @@ Using kafka console consumer with a formatter for kafka-metrics:
 - DOC: draw different deployment setups 
 - DOC: provide recipe and bin script for local setup with influxdb and grafana
 - DOC: sphinx documentation using generated versions in the examples
+- TODO: more robust connection error handling, e.g. when one of the cluster is not reachable, warn once and try reconnecting quietly
 - TODO: expose all except serde configs for kafka producer (NEW) configuration properties
 - TODO: configurable log4j.properties file location and enironment var overrides for configs
 - DESIGN: explore back-port to kafka 0.7
