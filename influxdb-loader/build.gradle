@@ -1,0 +1,18 @@
+apply plugin: 'java'
+
+dependencies {
+    compile project(':core')
+//    compile group: 'org.apache.kafka', name: 'kafka_' + baseScalaVersion, version: rootProject.kafkaVersion
+//    testCompile group: 'junit', name: 'junit', version: '4.+'
+
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'io.amient.kafka.metrics.KafkaMetricsMain'
+    }
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+

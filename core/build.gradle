@@ -1,0 +1,18 @@
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "com.commercehub.gradle.plugin:gradle-avro-plugin:0.8.0"
+    }
+}
+
+apply plugin: 'java'
+
+apply plugin: "com.commercehub.gradle.plugin.avro"
+
+dependencies {
+    compile "org.apache.avro:avro:1.7.7"
+}

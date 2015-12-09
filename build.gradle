@@ -1,0 +1,58 @@
+ext.javaVersion = 1.6
+ext.kafkaVersion = '0.8.2.1'
+//ext.avroVersion = '1.7.7'
+
+project.version = ext.kafkaVersion
+
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.7'
+}
+
+task build << {
+
+}
+
+build.dependsOn {
+    tasks.getByPath(':core:build')
+    tasks.getByPath(':metrics-reporter:build')
+    tasks.getByPath(':influxdb-loader:build')
+}
+
+allprojects {
+    plugins.withType(JavaPlugin).whenPluginAdded {
+        version = rootProject.version
+
+        if (!hasProperty('scalaVersion')) {
+            ext.scalaVersion = '2.10.5'
+        }
+
+        ext.defaultScalaVersion = '2.10.5'
+
+        if (scalaVersion.startsWith('2.10')) {
+            ext.baseScalaVersion = '2.10'
+        } else if (scalaVersion.startsWith('2.11')) {
+            ext.baseScalaVersion = '2.11'
+        } else {
+            ext.baseScalaVersion = scalaVersion
+        }
+
+        def slf4jlog4j='org.slf4j:slf4j-log4j12:1.7.6'
+        def slf4japi="org.slf4j:slf4j-api:1.7.6"
+
+        sourceCompatibility = rootProject.javaVersion
+
+        repositories {
+
+            mavenLocal()
+            mavenCentral()
+        }
+
+        dependencies {
+            compile group: 'org.apache.kafka', name: 'kafka_' + baseScalaVersion, version: rootProject.kafkaVersion
+//            compile group: 'org.apache.avro', name: 'avro', version: rootProject.avroVersion
+            testCompile group: 'junit', name: 'junit', version: '4.+'
+        }
+    }
+}
+

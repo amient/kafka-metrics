@@ -45,7 +45,7 @@ public class MeasurementFormatter extends MeasurementDeserializer implements Mes
 
     public void writeTo(MeasurementV1 measurement, PrintStream output) {
         output.append(measurement.getName());
-        for (java.util.Map.Entry<CharSequence, CharSequence> tag : measurement.getTags().entrySet()) {
+        for (java.util.Map.Entry<String, String> tag : measurement.getTags().entrySet()) {
             output.append(",");
             output.append(tag.getKey());
             output.append("=");
@@ -53,7 +53,7 @@ public class MeasurementFormatter extends MeasurementDeserializer implements Mes
         }
         output.append(" [" + date.format(new Date(measurement.getTimestamp())) + "] ");
         output.append("\n");
-        for (java.util.Map.Entry<CharSequence, Double> field : measurement.getFields().entrySet()) {
+        for (java.util.Map.Entry<String, Double> field : measurement.getFields().entrySet()) {
             output.append(field.getKey());
             output.append("=");
             output.append(field.getValue().toString());
