@@ -130,7 +130,7 @@ public class JMXScannerTask implements Runnable {
         MeasurementV1 measurement = new MeasurementV1();
         measurement.setTimestamp(timestamp);
         measurement.setName(name.getKeyProperty("name"));
-        measurement.setTags(new LinkedHashMap<CharSequence, CharSequence>(tags));
+        measurement.setTags(new LinkedHashMap<String, String>(tags));
         measurement.getTags().put("group", name.getDomain());
         for (Map.Entry<String, String> k : name.getKeyPropertyList().entrySet()) {
             if (!k.getKey().equals("name")) {
@@ -150,7 +150,7 @@ public class JMXScannerTask implements Runnable {
             }
         }
 
-        measurement.setFields(new HashMap<CharSequence, Double>(fields));
+        measurement.setFields(new HashMap<String, Double>(fields));
         return new MeasurementV1[]{measurement};
 
     }
@@ -166,7 +166,7 @@ public class JMXScannerTask implements Runnable {
             MeasurementV1 measurement = new MeasurementV1();
             measurement.setTimestamp(timestamp);
             measurement.setName(attr.getName());
-            measurement.setTags(new LinkedHashMap<CharSequence, CharSequence>(tags));
+            measurement.setTags(new LinkedHashMap<String, String>(tags));
             measurement.getTags().put("group", name.getDomain());
             for (Map.Entry<String, String> tag: name.getKeyPropertyList().entrySet()) {
                 measurement.getTags().put(tag.getKey(), tag.getValue());
@@ -176,7 +176,7 @@ public class JMXScannerTask implements Runnable {
             HashMap<String, Double> fields = new HashMap<String, Double>();
             if (value != null)
                 fields.put("Value", value);
-            measurement.setFields(new HashMap<CharSequence, Double>(fields));
+            measurement.setFields(new HashMap<String, Double>(fields));
             result[k++] = measurement;
         }
 

@@ -2,9 +2,7 @@ apply plugin: 'java'
 
 dependencies {
     compile project(':core')
-//    compile group: 'org.apache.kafka', name: 'kafka_' + baseScalaVersion, version: rootProject.kafkaVersion
-//    testCompile group: 'junit', name: 'junit', version: '4.+'
-
+    compile group: 'org.influxdb', name: 'influxdb-java', version: '2.0'
 }
 
 jar {
@@ -16,3 +14,27 @@ jar {
     }
 }
 
+//<plugin>
+//<groupId>org.apache.maven.plugins</groupId>
+//                <artifactId>maven-antrun-plugin</artifactId>
+//<version>1.6</version>
+//                <executions>
+//                    <execution>
+//                        <id>fix-script-permissions</id>
+//<phase>package</phase>
+//                        <configuration>
+//                            <target>
+//                                <copy todir="${project.basedir}/bin">
+//<fileset dir="${project.basedir}/target/classes" includes="*.sh"/>
+//</copy>
+//                                <chmod perm="755">
+//                                    <fileset dir="${project.basedir}/bin"  includes="*.sh"/>
+//</chmod>
+//                            </target>
+//</configuration>
+//                        <goals>
+//                            <goal>run</goal>
+//</goals>
+//                    </execution>
+//</executions>
+//            </plugin>

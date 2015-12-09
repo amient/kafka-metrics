@@ -50,10 +50,10 @@ public class InfluxDbPublisher implements MeasurementPublisher {
 
     public void publish(MeasurementV1 m) {
         Point.Builder builder = Point.measurement(m.getName().toString()).time(m.getTimestamp(), TimeUnit.MILLISECONDS);
-        for (java.util.Map.Entry<CharSequence, CharSequence> tag : m.getTags().entrySet()) {
+        for (java.util.Map.Entry<String, String> tag : m.getTags().entrySet()) {
             builder.tag(tag.getKey().toString(), tag.getValue().toString());
         }
-        for (java.util.Map.Entry<CharSequence, Double> field : m.getFields().entrySet()) {
+        for (java.util.Map.Entry<String, Double> field : m.getFields().entrySet()) {
             builder.field(field.getKey().toString(), field.getValue());
         }
         influxDB.write(dbName, "default", builder.build());

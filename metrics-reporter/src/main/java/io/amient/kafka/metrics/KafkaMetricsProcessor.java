@@ -67,7 +67,7 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
         MeasurementV1 measurement = new MeasurementV1();
         measurement.setTimestamp(timestamp);
         measurement.setName(name.getName());
-        measurement.setTags(new HashMap<CharSequence, CharSequence>(tags));
+        measurement.setTags(new HashMap<String, String>(tags));
         if (name.getGroup() != null && !name.getGroup().isEmpty()) measurement.getTags().put("group", name.getGroup());
         if (name.getType() != null && !name.getType().isEmpty()) measurement.getTags().put("type", name.getType());
         if (name.getScope() != null && !name.getScope().isEmpty()) {
@@ -83,7 +83,7 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
                 measurement.getTags().put("scope", name.getScope());
             }
         }
-        measurement.setFields(new HashMap<CharSequence, Double>(fields));
+        measurement.setFields(new HashMap<String, Double>(fields));
         return measurement;
     }
 
@@ -124,8 +124,8 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
                     MeasurementV1 measurement = new MeasurementV1();
                     measurement.setTimestamp(timestamp);
                     measurement.setName(m.getKey().name());
-                    measurement.setTags(new HashMap<CharSequence, CharSequence>(tags));
-                    measurement.setFields(new HashMap<CharSequence, Double>(fields));
+                    measurement.setTags(new HashMap<String, String>(tags));
+                    measurement.setFields(new HashMap<String, Double>(fields));
                     publish(measurement);
                 }
             }
