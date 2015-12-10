@@ -6,9 +6,11 @@ dependencies {
 }
 
 
-//TODO exclude kafka or indeed any provided dependencies
 jar {
     from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+        configurations.compile.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
     }
 }
+

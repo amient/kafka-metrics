@@ -170,6 +170,7 @@ Using kafka console consumer with a formatter for kafka-metrics:
 ## Development
 </a>
  
+
 - DOC: draw different deployment setups 
 - DOC: provide recipe and bin script for local setup with influxdb and grafana
 - DOC: sphinx documentation using generated versions in the examples
