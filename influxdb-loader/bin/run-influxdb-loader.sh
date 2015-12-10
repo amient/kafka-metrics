@@ -16,17 +16,10 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BASE_DIR=$(dirname $DIR)
-if [ -z "$JAVA_HOME" ]; then
-  JAVA="java"
-else
-  JAVA="$JAVA_HOME/bin/java"
-fi
 
 if [ "x$1" == "x" ]; then
     echo "Usage run-influxdb-loader.sh <PROPERTIES_FILE>"
     exit 1;
 fi
 
-JAR="$(dirname $DIR)/target/influxdb-loader-main-${project.version}.jar"
-
-"$JAVA" -jar "$JAR" "$@"
+$BASE_DIR/build/scripts/influxdb-loader "$@"

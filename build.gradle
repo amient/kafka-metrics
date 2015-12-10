@@ -26,6 +26,8 @@ allprojects {
 
     plugins.withType(JavaPlugin).whenPluginAdded {
         version = rootProject.version
+        sourceCompatibility = rootProject.javaVersion
+        libsDirName = 'lib'
 
         if (!hasProperty('scalaVersion')) {
             ext.scalaVersion = '2.10.5'
@@ -44,7 +46,6 @@ allprojects {
         def slf4jlog4j='org.slf4j:slf4j-log4j12:1.7.6'
         def slf4japi="org.slf4j:slf4j-api:1.7.6"
 
-        sourceCompatibility = rootProject.javaVersion
 
         repositories {
             mavenLocal()

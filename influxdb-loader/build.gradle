@@ -1,4 +1,6 @@
 apply plugin: 'java'
+apply plugin: 'application'
+mainClassName = 'io.amient.kafka.metrics.KafkaMetricsMain'
 
 dependencies {
     compile project(':core')
@@ -7,35 +9,9 @@ dependencies {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'io.amient.kafka.metrics.KafkaMetricsMain'
+        attributes 'Main-Class': mainClassName
     }
     from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
-        configurations.provided.collect { it.isDirectory() ? it : zipTree(it) }
+        (configurations.compile + configurations.provided).collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
-
-//<plugin>
-//<groupId>org.apache.maven.plugins</groupId>
-//                <artifactId>maven-antrun-plugin</artifactId>
-//<version>1.6</version>
-//                <executions>
-//                    <execution>
-//                        <id>fix-script-permissions</id>
-//<phase>package</phase>
-//                        <configuration>
-//                            <target>
-//                                <copy todir="${project.basedir}/bin">
-//<fileset dir="${project.basedir}/target/classes" includes="*.sh"/>
-//</copy>
-//                                <chmod perm="755">
-//                                    <fileset dir="${project.basedir}/bin"  includes="*.sh"/>
-//</chmod>
-//                            </target>
-//</configuration>
-//                        <goals>
-//                            <goal>run</goal>
-//</goals>
-//                    </execution>
-//</executions>
-//            </plugin>
