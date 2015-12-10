@@ -24,7 +24,7 @@ the Kafka Metrics Consumer and the disparate metrics streams, first aggregating 
 You'll need to install at least InfluxDB Server with defaults, then package all modules:
 
 ```
-mvn clean package
+./gradlew build
 ```
 
 If you have a Kafka Broker running locally which has a JMX Server enabled say on port 19092, you can use 
@@ -79,7 +79,8 @@ TopicReporter class. To be able to use the reporter as plug-in for kafka brokers
 packaged jar in their classpath, which in kafka broker means putting it in the kafka /libs directory:
 
 ```
-cp stream-reporter/target/stream-reporter-<kafka-version>.jar $KAFKA_HOME/libs/
+./gradlew install
+cp stream-reporter/lib/stream-reporter-*.jar $KAFKA_HOME/libs/
 ```
 
 ### Usage in Kafka Broker, Kafka Prism, Kafka Producer (pre 0.8.2), Kafka Consumer (pre 0.9)

@@ -1,5 +1,9 @@
 apply plugin: 'java'
 
+apply plugin: "maven"
+group = "io.amient.kafka.metrics"
+version = rootProject.version
+
 dependencies {
     compile project(':core')
     compile 'com.yammer.metrics:metrics-core:2.2.0'

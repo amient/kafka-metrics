@@ -8,15 +8,16 @@ task wrapper(type: Wrapper) {
     gradleVersion = '2.7'
 }
 
-task build << {
+task install << {}
 
-}
+task build << {}
 
 build.dependsOn {
     tasks.getByPath(':core:build')
     tasks.getByPath(':metrics-reporter:build')
     tasks.getByPath(':influxdb-loader:build')
 }
+
 
 allprojects {
 
