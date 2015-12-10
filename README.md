@@ -4,6 +4,29 @@ This is a system whose purpose is to aggregate metrics from a topology of Kafka 
 applications. It uses InfluxDB as the time series back-end which can then be used for example with Grafana front-end
 or other visualisation and alerting tools.
 
+### Contents
+
+1. [Overivew](#overview)
+2. [InfluxDB Loader](#usage-loader)
+	- [Quickstart](#quickstart) 
+	- [Configuration Options](#configuration-loader)
+		- [InfluxDB Backend](#configuration-loader-influxdb)
+		- [JMX Connectors](#configuration-loader-jmx)
+		- [Metrics Consumer](#configuration-loader-consumer)
+3. [TopicReporter](#usage-reporter)
+	- [Usage in Kafka Broker, Kafka Prism, Kafka Producer (pre 0.8.2), Kafka Consumer (pre 0.9)](#usage-reporter-kafka-old)
+	- [Usage in Kafka NEW Producer (0.8.2+) and Consumer (0.9+)](#usage-reporter-kafka-new)
+	- [Usage in any application using dropwizard metrics (formerly yammer metrics)](#usage-reporter-dropwizard)
+	- [Configuration Options](#configuration-reporter)
+4. [Operations & Troubleshooting](#operations)
+5. [Development](#development)
+
+<a name="overvuew">
+## Overview
+</a>
+
+![overview](doc/metrics.jpg)
+
 There are 2 primary ways of how the aggregation of metrics from several components is achieved. 
 
 For smaller infrastructures consisting of small number of clusters in proximity to each other, direct JMX scanner tasks 
@@ -17,8 +40,12 @@ aggregator is then replaced with Kafka Metrics Consumer  aggregator which then p
 For multi-DC, potentially global deployments, Kafka Prism or Kafka Mirror Maker maker can placed between 
 the Kafka Metrics Consumer and the disparate metrics streams, first aggregating them in a single cluster.
 
+<a name="usage-loader">
+## InfluxDB Loader Usage
+</a>
+
 <a name="quickstart">
-## QuickStart
+### Quickstart
 </a>
 
 You'll need to install at least InfluxDB Server with defaults, then package all modules:
@@ -35,10 +62,12 @@ If you have a Kafka Broker running locally which has a JMX Server enabled say on
 ```
 
 <a name="configuration-loader">
-## Configuration Options for InfluxDB Loader
+### Configuration Options for InfluxDB Loader
 </a>
 
+<a name="configuration-loader-influxdb">
 ### InfluxDB back options
+</a>
 
 parameter                                  | default                | description
 -------------------------------------------|------------------------|------------------------------------------------------------------------------
@@ -48,7 +77,9 @@ parameter                                  | default                | descriptio
 **influxdb.password**                      | `root`                 | Authentication passord for API calls
 
 
+<a name="configuration-loader-jmx">
 ### JMX Scanner Options
+</a>
 
 parameter                                  | default                | description
 -------------------------------------------|------------------------|------------------------------------------------------------------------------
@@ -59,7 +90,9 @@ jmx.{ID}.tag.{TAG-1}              | -                      | optinal tags which 
 jmx.{ID}.tag.{TAG-2}              | -                      | ...
 jmx.{ID}.tag.{TAG-n}              | -                      | ...
 
+<a name="configuration-loader-consumer">
 ### Metrics Consumer Options
+</a>
 
 parameter                                  | default                | description
 -------------------------------------------|------------------------|------------------------------------------------------------------------------
@@ -83,7 +116,9 @@ packaged jar in their classpath, which in kafka broker means putting it in the k
 cp stream-reporter/lib/stream-reporter-*.jar $KAFKA_HOME/libs/
 ```
 
+<a name="usage-reporter-kafka-old">
 ### Usage in Kafka Broker, Kafka Prism, Kafka Producer (pre 0.8.2), Kafka Consumer (pre 0.9)
+</a>
 
 
 add following properties to the configuration for the component  
@@ -93,14 +128,18 @@ kafka.metrics.reporters=io.amient.kafka.metrics.TopicReporter
 kafka.metrics.<CONFIGURATION-OPTIONS>...
 ```
 
-###  Usage in Kafka NEW Producer (0.8.2+) and Consumer (0.9+) NEW APIs 
+<a name="usage-reporter-kafka-new">
+###  Usage in Kafka NEW Producer (0.8.2+) and Consumer (0.9+) 
+</a>
 
 ```
 metric.reporters=io.amient.kafka.metrics.TopicReporter
 kafka.metrics.<CONFIGURATION-OPTIONS>...
 ```
 
+<a name="usage-reporter-dropwizard">
 ### Usage in any application using dropwizard metrics (formerly yammer metrics)
+</a>
 
 Like any other yammer metrics reporter, given an instance (and configuration), once started, the reporter
 will produce kafka-metrics messages to a configured topic every given time interval. Scala-Maven Example:
@@ -138,7 +177,7 @@ reporter.start(10, TimeUnit.SECONDS);
 ```
 
 <a name="configuration-reporter">
-## Configuration Options for the TopicReporter
+### Configuration Options for the TopicReporter
 </a>
 
 parameter                                  | default           | description
@@ -147,11 +186,6 @@ parameter                                  | default           | description
 **kafka.metrics.polling.interval**         | `10s`             | Poll and publish frequency of metrics, llowed interval values: 1s, 10s, 1m
 **kafka.metrics.bootstrap.servers**        | *inferred*        | Coma-separated list of kafka server addresses (host:port). When used in Brokers, `localhost` is default.
 *kafka.metrics.tag.<tag-name>.<tag=value>* | -                 | Fixed name-value pairs that will be used as tags in the published measurement for this instance, .e.g `kafka.metrics.tag.host.my-host-01` or `kafka.metrics.tag.dc.uk-az1`  
-
-
-<a name="configuration">
-## Configuration Options for the Reporter
-</a>
 
 
 <a name="operations">
