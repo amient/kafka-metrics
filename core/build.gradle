@@ -1,3 +1,9 @@
+apply plugin: 'java'
+
+apply plugin: "maven"
+group = "io.amient.kafka.metrics"
+version = rootProject.version
+
 buildscript {
     repositories {
         maven {
@@ -8,8 +14,6 @@ buildscript {
         classpath "com.commercehub.gradle.plugin:gradle-avro-plugin:0.8.0"
     }
 }
-
-apply plugin: 'java'
 
 apply plugin: "com.commercehub.gradle.plugin.avro"
 
