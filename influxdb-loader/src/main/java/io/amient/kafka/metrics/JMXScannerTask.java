@@ -43,13 +43,13 @@ public class JMXScannerTask implements Runnable {
     private final Clock clock;
     private final MeasurementPublisher publisher;
     private final MeasurementFormatter formatter;
-    private final ObjectName all;
+    private final ObjectName pattern;
 
     public static class JMXScannerConfig {
 
         private final Map<String, String> tags = new LinkedHashMap<String, String>();
         private String address;
-        private String queryScope = "kafka";
+        private String queryScope = "*:*";
         private long queryIntervalSeconds = 10;
 
         public void setTag(String propKey, String propVal) {
@@ -87,7 +87,7 @@ public class JMXScannerTask implements Runnable {
     }
 
     public JMXScannerTask(JMXScannerConfig config, MeasurementPublisher publisher) throws IOException, MalformedObjectNameException {
-        this.all = new ObjectName(config.getQueryScope() + ".*:*");
+        this.pattern = new ObjectName(config.getQueryScope());
         JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://" + config.getAddress() + "/jmxrmi");
         this.jmxConnector = JMXConnectorFactory.connect(url);
         this.conn = jmxConnector.getMBeanServerConnection();
@@ -95,13 +95,14 @@ public class JMXScannerTask implements Runnable {
         this.clock = Clock.defaultClock();
         this.publisher = publisher;
         this.formatter = new MeasurementFormatter();
+        log.info("url=" + url + ", scope=" + config.queryScope);
     }
 
     @Override
     public void run() {
         try {
             final long timestamp = clock.time();
-            Set<ObjectInstance> beans = conn.queryMBeans(all, null);
+            Set<ObjectInstance> beans = conn.queryMBeans(pattern, null);
             for (ObjectInstance i : beans) {
                 MeasurementV1[] measurements = extractMeasurements(i, timestamp);
                 for (MeasurementV1 measurement : measurements) {

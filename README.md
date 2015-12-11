@@ -84,7 +84,7 @@ parameter                                  | default                | descriptio
 parameter                                  | default                | description
 -------------------------------------------|------------------------|------------------------------------------------------------------------------
 jmx.{ID}.address                  | -                      | Address of the JMX Service Endpoint 
-jmx.{ID}.query.scope              | `kafka`                | this will be used to filer object names in the JMX Server registry, i.e. `kafka.*:*`
+jmx.{ID}.query.scope              | `*:*`                  | this will be used to filer object names in the JMX Server registry, i.e. `*:*` or `kafka.*:*` or `kafka.server:type=BrokerTopicMetrics,*`
 jmx.{ID}.query.interval.s         | 10                     | how frequently to query the JMX Service 
 jmx.{ID}.tag.{TAG-1}              | -                      | optinal tags which will be attached to each measurement  
 jmx.{ID}.tag.{TAG-2}              | -                      | ...
