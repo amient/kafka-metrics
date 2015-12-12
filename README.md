@@ -38,8 +38,7 @@ There are several ways of how the aggregation of metrics from several components
 ### Basic Scenario
 </a>
 
-For smaller infrastructures consisting clusters on the same network, direct JMX scanner tasks can be configured for each JMX Server exposed in the infrastructure and application landscape. This method doesn't
-require to include any extra code in the monitored applications as long as they already expsoe JMX MBeans and in local environment the kafka topic can also be omitted.
+For smaller systems consisting of components on the same network or simply a localhost, direct JMX scanner tasks can be configured for each JMX Application. This method doesn't require to include any extra code in the monitored applications as long as they already expsoe JMX MBeans and in a local environment the kafka topic can also be omitted.
 
 ![scenario0](doc/kafka-metrics-scenario0.png)
 
@@ -47,7 +46,7 @@ require to include any extra code in the monitored applications as long as they 
 ### Multi-Server Scenario
 </a>
 
-For bigger application servers, where metrics from several hosts need be aggregated or in cases where more fault-tolerante collection of metrics is required , a combination of pluggable TopicReproter or JMX Metrics Agent(work-in-progress) and a  Kafka Topic can be deployed by configuration. The JMX Scanner used in the basic scenario is  replaced with Metrics Consumer which then publishes these metrics into the InfluxDB.
+For bigger application servers, where metrics from several hosts need to be aggregated or in cases where more fault-tolerant collection of metrics is required, a combination of pluggable TopicReproter or JMX Metrics Agent and a Kafka Topic can be deployed by configuration. The JMX Scanner used in the basic scenario is replaced with Metrics Consumer which then publishes these metrics into the InfluxDB.
 
 
 ![scenario0](doc/kafka-metrics-scenario1.png)
@@ -56,8 +55,7 @@ For bigger application servers, where metrics from several hosts need be aggrega
 ### Multi-Data-Centre Scenario
 </a>
 
-For multi-DC, potentially global deployments, where metrics from several disparate clusters need to be collected, each cluster has produces to it's local kafka brokers and one of the existing mirroring components (Kafka Prism, Kafka Mirror Maker, ...) is deployed to aggregate local metrics topic into a single aggregated stream of metrics from across the system.
-
+For multi-DC, potentially global deployments, where metrics from several disparate clusters need to be collected, each cluster has its agent which publishes into a local metrics stream and one of the existing mirroring components (Kafka Prism, Kafka Mirror Maker, ...) is deployed to aggregate local metrics topic into a single aggregated stream providing a real-time monitoring of the entire system.
 
 ![scenario0](doc/kafka-metrics-scenario2.png)
 
@@ -65,7 +63,7 @@ For multi-DC, potentially global deployments, where metrics from several dispara
 ### Multi-Environment Scenario
 </a>
 
-Finally in the heterogenous environments, where different kinds of application  and infrastructure stacks exist, firstly any JMX-Enabled or YAMMER-Enabled application can be plugged by configuration. 
+Finally, in the heterogenous environments, where different kinds of application and infrastructure stacks exist, firstly any JMX-Enabled or YAMMER-Enabled application can be plugged by configuration. 
 
 ***For non-JVM applications or for JVM applications that do not expose JMX MBeans, there is a work in progress to have REST Metrics Agent which can receive http put requests and which can be deployed in all scenarios either with or without the metrics topic.***
 
