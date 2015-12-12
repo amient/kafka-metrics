@@ -20,6 +20,37 @@
 package io.amient.kafka.metrics;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
+
 public class KafkaMetricsAgent {
+
+    private static Logger log = LoggerFactory.getLogger(KafkaMetricsAgent.class);
+
+    public static void main(String[] args) {
+        String propertiesFilename = args[0];
+        Properties props = new Properties();
+        try {
+            props.load(new FileInputStream(propertiesFilename));
+
+            try {
+                MeasurementPublisher publisher = new ProducerPublisher(props);
+                JMXScanner scanner = new JMXScanner(props, publisher);
+                while (!scanner.isTerminated()) {
+                    Thread.sleep(5000);
+                }
+            } catch (Throwable e) {
+                log.error("Failed to launch KafkaMetrics JMX Scanner", e);
+            }
+
+        } catch (IOException e) {
+            log.error("Could not load " + propertiesFilename, e);
+            System.exit(1);
+        }
+    }
 
 }

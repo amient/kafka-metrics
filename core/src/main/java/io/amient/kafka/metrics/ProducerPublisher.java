@@ -26,11 +26,23 @@ import java.util.Properties;
 
 public class ProducerPublisher implements MeasurementPublisher {
 
+    public static final String CONFIG_BOOTSTRAP_SERVERS = "kafka.metrics.bootstrap.servers";
+    public static final String CONFIG_METRICS_TOPIC = "kafka.metrics.topic";
+
     private final KafkaProducer producer;
     private final String topic;
 
+    public ProducerPublisher(Properties props) {
+        this(
+            props.getProperty(ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS, "localhost:9092"),
+            props.getProperty(ProducerPublisher.CONFIG_METRICS_TOPIC, "_metrics")
+        );
+    }
+
     public ProducerPublisher(final String kafkaBootstrapServers, final String topic) {
         this.topic = topic;
+        if (kafkaBootstrapServers == null) throw new IllegalArgumentException("Missing configuration: " + CONFIG_BOOTSTRAP_SERVERS);
+        if (topic == null) throw new IllegalArgumentException("Missing configuration: " + CONFIG_METRICS_TOPIC);
         this.producer = new KafkaProducer<String, Object>(new Properties() {{
             put("bootstrap.servers", kafkaBootstrapServers);
             put("compression.type", "gzip");

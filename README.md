@@ -12,21 +12,18 @@ or other visualisation and alerting tools.
 	- [Multi-Server Scenario](#scenario1)
 	- [Multi-Data-Centre Scenario](#scenario3) 
 	- [Multi-Enviornment Scenario](#scenario2)
-2. [InfluxDB Loader](#usage-loader)
-	- [Quickstart](#quickstart) 
-	- [Configuration Options](#configuration-loader)
-		- [InfluxDB Backend](#configuration-loader-influxdb)
-		- [JMX Connectors](#configuration-loader-jmx)
-		- [Metrics Consumer](#configuration-loader-consumer)
+2. [InfluxDB Loader](#usage-loader) 
 3. [MetricsAgent](#metrics-agent)
-    -
 4. [TopicReporter](#usage-reporter)
 	- [Usage in Kafka Broker, Kafka Prism, Kafka Producer (pre 0.8.2), Kafka Consumer (pre 0.9)](#usage-reporter-kafka-old)
 	- [Usage in Kafka NEW Producer (0.8.2+) and Consumer (0.9+)](#usage-reporter-kafka-new)
 	- [Usage in any application using dropwizard metrics (formerly yammer metrics)](#usage-reporter-dropwizard)
-	- [Configuration Options](#configuration-reporter)
-5. [Operations & Troubleshooting](#operations)
-6. [Development](#development)
+5. [Configuration](#configuration)
+    - [InfluxDB Loader Options](#configuration-loader-influxdb)
+    - [JMX Scanner Options](#configuration-scanner)
+    - [Metrics Producer Options](#configuration-producer)
+6. [Operations & Troubleshooting](#operations)
+7. [Development](#development)
 
 <a name="overview">
 ## Overview
@@ -75,10 +72,6 @@ Finally, in the heterogenous environments, where different kinds of application 
 ## InfluxDB Loader Usage
 </a>
 
-<a name="quickstart">
-### Quickstart
-</a>
-
 You'll need to install at least InfluxDB Server with defaults, then package all modules:
 
 ```
@@ -89,51 +82,20 @@ If you have a Kafka Broker running locally which has a JMX Server enabled say on
  the following default config file for jmx scanner local aggrgator: 
 
 ```
-./influxdb-loader/bin/run-influxdb-loader.sh influxdb-loader/conf/local-jmx.properties
+./bin/kafka-metrics-loader.sh influxdb-loader/conf/local-jmx.properties
 ```
 
-<a name="configuration-loader">
-### Configuration Options for InfluxDB Loader
+<a name="metrics-agent">
+## Metrics Agent
 </a>
 
-<a name="configuration-loader-influxdb">
-### InfluxDB back options
-</a>
+The purpose of agent is to move expensive metrics collection like JMX polling closer to the application and publish
+these into the kafka metrics topic. 
 
-parameter                                  | default                | description
--------------------------------------------|------------------------|------------------------------------------------------------------------------
-**influxdb.database**                      | `metrics`              | InfluxDB Database Name where to publish the measurements 
-**influxdb.url**                           | `http://localhost:8086`| URL of the InfluxDB API Instance
-**influxdb.username**                      | `root`                 | Authentication username for API calls
-**influxdb.password**                      | `root`                 | Authentication passord for API calls
+```
+./bin/kafka-metrics-agent.sh <PROPERTIES-FILE>
+```
 
-
-<a name="configuration-loader-jmx">
-### JMX Scanner Options
-</a>
-
-parameter                                  | default                | description
--------------------------------------------|------------------------|------------------------------------------------------------------------------
-jmx.{ID}.address                  | -                      | Address of the JMX Service Endpoint 
-jmx.{ID}.query.scope              | `*:*`                  | this will be used to filer object names in the JMX Server registry, i.e. `*:*` or `kafka.*:*` or `kafka.server:type=BrokerTopicMetrics,*`
-jmx.{ID}.query.interval.s         | 10                     | how frequently to query the JMX Service 
-jmx.{ID}.tag.{TAG-1}              | -                      | optinal tags which will be attached to each measurement  
-jmx.{ID}.tag.{TAG-2}              | -                      | ...
-jmx.{ID}.tag.{TAG-n}              | -                      | ...
-
-<a name="configuration-loader-consumer">
-### Metrics Consumer Options
-</a>
-
-parameter                                  | default                | description
--------------------------------------------|------------------------|------------------------------------------------------------------------------
-consumer.topic                             | `_metrics`             | Topic to consumer (where measurements are published by Reporter)
-consumer.numThreads                        | `1`                    | Number of consumer threads
-consumer.zookeeper.connect                 | `localhost:2181`       | As per [Kafka Consumer Configuration](http://kafka.apache.org/documentation.html#consumerconfigs)
-consumer.group.id                          | -                      | As per Any [Kafka Consumer Configuration](http://kafka.apache.org/documentation.html#consumerconfigs)
-consumer....                               | -                      | Any other [Kafka Consumer Configuration](http://kafka.apache.org/documentation.html#consumerconfigs)
-
- 
 <a name="usage-reporter">
 ## Usage of the TopicReporter
 </a>
@@ -207,9 +169,49 @@ val reporter = TopicReporter.forRegistry(registry).configure(config).build()
 reporter.start(10, TimeUnit.SECONDS);
 ```
 
-<a name="configuration-reporter">
-### Configuration Options for the TopicReporter
+<a name="configuration">
+## Configuration
 </a>
+
+<a name="configuration-loader-influxdb">
+### InfluxDB back options
+</a>
+
+The following configuration options can be used with the **InfluxDB Loader**:
+
+parameter                                  | default                | description
+-------------------------------------------|------------------------|------------------------------------------------------------------------------
+**influxdb.database**                      | `metrics`              | InfluxDB Database Name where to publish the measurements 
+**influxdb.url**                           | `http://localhost:8086`| URL of the InfluxDB API Instance
+**influxdb.username**                      | `root`                 | Authentication username for API calls
+**influxdb.password**                      | `root`                 | Authentication passord for API calls
+consumer.topic                             | `_metrics`             | Topic to consumer (where measurements are published by Reporter)
+consumer.numThreads                        | `1`                    | Number of consumer threads
+consumer.zookeeper.connect                 | `localhost:2181`       | As per [Kafka Consumer Configuration](http://kafka.apache.org/documentation.html#consumerconfigs)
+consumer.group.id                          | -                      | As per Any [Kafka Consumer Configuration](http://kafka.apache.org/documentation.html#consumerconfigs)
+consumer....                               | -                      | Any other [Kafka Consumer Configuration](http://kafka.apache.org/documentation.html#consumerconfigs)
+
+<a name="configuration-scanner">
+### JMX Scanner Options
+</a>
+
+The following configuration options can be used with the **InfluxDB Loader** and **MetricsAgent**:
+
+parameter                                  | default                | description
+-------------------------------------------|------------------------|------------------------------------------------------------------------------
+jmx.{ID}.address                  | -                      | Address of the JMX Service Endpoint 
+jmx.{ID}.query.scope              | `*:*`                  | this will be used to filer object names in the JMX Server registry, i.e. `*:*` or `kafka.*:*` or `kafka.server:type=BrokerTopicMetrics,*`
+jmx.{ID}.query.interval.s         | 10                     | how frequently to query the JMX Service 
+jmx.{ID}.tag.{TAG-1}              | -                      | optinal tags which will be attached to each measurement  
+jmx.{ID}.tag.{TAG-2}              | -                      | ...
+jmx.{ID}.tag.{TAG-n}              | -                      | ...
+
+
+<a name="configuration-producer">
+### Metrics Producer Options
+</a>
+
+The following configuration options can be used with the TopicReporter and MetricsAgent:
 
 parameter                                  | default           | description
 -------------------------------------------|-------------------|------------------------------------------------------------------------------
@@ -218,9 +220,6 @@ parameter                                  | default           | description
 **kafka.metrics.bootstrap.servers**        | *inferred*        | Coma-separated list of kafka server addresses (host:port). When used in Brokers, `localhost` is default.
 *kafka.metrics.tag.<tag-name>.<tag=value>* | -                 | Fixed name-value pairs that will be used as tags in the published measurement for this instance, .e.g `kafka.metrics.tag.host.my-host-01` or `kafka.metrics.tag.dc.uk-az1`  
 
-<a name="metrics-agent">
-## Metrics Agent
-</a>
 
 <a name="operations">
 ## Operations & Troubleshooting
@@ -239,10 +238,10 @@ Using kafka console consumer with a formatter for kafka-metrics:
 ## Development
 </a>
  
-- TODO: JMX Agent
-- TODO: REST Metrics Agent - ideally using Kafka REST API but only if Schema Registry is optional - for non-jvm apps
+- TODO: Future-proof the serialization with magic byte for the time when Schema Registry will support maps
 - DOC: provide recipe and bin script for local setup with influxdb, grafana and kapacitor out-of-the-box 
 - DOC: sphinx documentation using generated versions in the examples
+- TODO: REST Metrics Agent - ideally using Kafka REST API but only if Schema Registry is optional - for non-jvm apps
 - TODO: more robust connection error handling, e.g. when one of the cluster is not reachable, warn once and try reconnecting quietly
 - TODO: expose all except serde configs for kafka producer (NEW) configuration properties
 - TODO: configurable log4j.properties file location and enironment var overrides for configs

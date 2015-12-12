@@ -1,8 +1,6 @@
 apply plugin: 'java'
-
-apply plugin: "maven"
-group = "io.amient.kafka.metrics"
-version = rootProject.version
+apply plugin: 'application'
+mainClassName = 'io.amient.kafka.metrics.KafkaMetricsAgent'
 
 dependencies {
     compile project(':core')
@@ -11,7 +9,7 @@ dependencies {
 
 jar {
     from {
-        configurations.compile.collect {
+        (configurations.compile + configurations.provided).collect {
             it.isDirectory() ? it : zipTree(it)
         }
     }

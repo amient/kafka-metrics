@@ -22,4 +22,4 @@ if [ "x$1" == "x" ]; then
     exit 1;
 fi
 
-$BASE_DIR/build/scripts/influxdb-loader "$@"
+$BASE_DIR/influxdb-loader/build/scripts/influxdb-loader "$@"

@@ -34,9 +34,7 @@ public class KafkaMetricsProcessorBuilder {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaMetricsProcessorBuilder.class);
 
-    private static final String CONFIG_METRICS_TOPIC = "kafka.metrics.topic";
     private static final String CONFIG_POLLING_INTERVAL = "kafka.metrics.polling.interval";
-    private static final String CONFIG_BOOTSTRAP_SERVERS = "kafka.metrics.bootstrap.servers";
     private static final String CONFIG_REPORTER_TAG_PREFIX = "kafka.metrics.tag.";
 
     private MetricsRegistry registry;
@@ -51,13 +49,13 @@ public class KafkaMetricsProcessorBuilder {
     }
 
     public KafkaMetricsProcessorBuilder configure(Properties config) {
-        if (!config.containsKey(CONFIG_BOOTSTRAP_SERVERS) && config.containsKey("port")) {
+        if (!config.containsKey(ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS) && config.containsKey("port")) {
             //if this is plugged into kafka broker itself we can use it for metrics producer itself
-            config.put(CONFIG_BOOTSTRAP_SERVERS, "localhost:" + config.get("port"));
+            config.put(ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS, "localhost:" + config.get("port"));
         }
-        if (config.containsKey("bootstrap.servers") && !config.containsKey(CONFIG_BOOTSTRAP_SERVERS)) {
+        if (config.containsKey("bootstrap.servers") && !config.containsKey(ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS)) {
             //if plugged into kafka producer and bootstrap servers not specified, re-use the wrapping producer's ones
-            config.put(CONFIG_BOOTSTRAP_SERVERS, config.getProperty("bootstrap.servers"));
+            config.put(ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS, config.getProperty("bootstrap.servers"));
         }
 
         for (Enumeration<Object> e = config.keys(); e.hasMoreElements(); ) {
@@ -71,9 +69,9 @@ public class KafkaMetricsProcessorBuilder {
         if (propName.startsWith(CONFIG_REPORTER_TAG_PREFIX)) {
             String tag = propName.substring(CONFIG_REPORTER_TAG_PREFIX.length());
             return setTag(tag, propValue);
-        } else if (propName.equals(CONFIG_METRICS_TOPIC)) {
+        } else if (propName.equals(ProducerPublisher.CONFIG_METRICS_TOPIC)) {
             return setTopic(propValue);
-        } else if (propName.equals(CONFIG_BOOTSTRAP_SERVERS)) {
+        } else if (propName.equals(ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS)) {
             setBootstrapServers(propValue);
         } else if (propName.equals(CONFIG_POLLING_INTERVAL)) {
             setPollingInterval(propValue);
@@ -117,8 +115,8 @@ public class KafkaMetricsProcessorBuilder {
 
     public void decorateConfig(Properties config) {
         config.put("kafka.metrics.reporters", TopicReporter.class.getName());
-        config.put(CONFIG_METRICS_TOPIC, topic);
-        config.put(CONFIG_BOOTSTRAP_SERVERS, bootstrapServers);
+        config.put(ProducerPublisher.CONFIG_METRICS_TOPIC, topic);
+        config.put(ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS, bootstrapServers);
         config.put(CONFIG_POLLING_INTERVAL, pollingIntervalSeconds.toString() + "s");
         for(Map.Entry<String,String> tag: tags.entrySet()) {
             config.put(CONFIG_REPORTER_TAG_PREFIX + tag.getKey(), tag.getValue());
@@ -135,8 +133,8 @@ public class KafkaMetricsProcessorBuilder {
     }
 
     public KafkaMetricsProcessor build() {
-        log.info("Building TopicReporter: " + CONFIG_METRICS_TOPIC + "=" + topic);
-        log.info("Building TopicReporter: " + CONFIG_BOOTSTRAP_SERVERS + "=" + bootstrapServers);
+        log.info("Building TopicReporter: " + ProducerPublisher.CONFIG_METRICS_TOPIC + "=" + topic);
+        log.info("Building TopicReporter: " + ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS + "=" + bootstrapServers);
         log.info("Building TopicReporter: " + CONFIG_POLLING_INTERVAL + pollingIntervalSeconds);
         for(Map.Entry<String,String> tag: tags.entrySet()) {
             log.info("Building TopicReporter with tag: " + tag.getKey() + "=" + tag.getValue());
