@@ -38,35 +38,9 @@ public class JMXScanner {
 
     static private final Logger log = LoggerFactory.getLogger(JMXScanner.class);
 
-    public static void main(String[] args) {
-        Properties props = new Properties();
-        props.put(InfluxDbPublisher.COFNIG_INFLUXDB_DATABASE, "metrics");
-        props.put(InfluxDbPublisher.COFNIG_INFLUXDB_URL, "http://localhost:8086");
-        props.put(InfluxDbPublisher.COFNIG_INFLUXDB_USERNAME, "root");
-        props.put(InfluxDbPublisher.COFNIG_INFLUXDB_PASSWORD, "root");
-
-        props.put("jmx.1.address", "localhost:19092");
-        props.put("jmx.1.query.scope", "kafka");
-        props.put("jmx.1.query.interval.s", "10");
-        props.put("jmx.1.tag.cluster", "a");
-        props.put("jmx.1.tag.host", "host-001");
-        props.put("jmx.1.tag.service", "broker-0");
-
-        try {
-            JMXScanner jmxScannerInstance = new JMXScanner(props);
-            while (!jmxScannerInstance.isTerminated()) {
-                Thread.sleep(5000);
-            }
-        } catch (Throwable e) {
-            log.error("Failed to launch KafkaMetrics JMX Scanner", e);
-        }
-
-
-    }
-
     final private ScheduledExecutorService jmxScanExecutor;
 
-    public JMXScanner(Properties props)
+    public JMXScanner(Properties props, MeasurementPublisher publisher)
             throws IOException, MalformedObjectNameException, InterruptedException {
         Map<String, JMXScannerConfig> jmxConfigs = new HashMap<String, JMXScannerConfig>();
         for (Enumeration<Object> e = props.keys(); e.hasMoreElements(); ) {
@@ -97,7 +71,7 @@ public class JMXScanner {
         for (JMXScannerConfig jmxConfig : jmxConfigs.values()) {
             log.info("Starting JMXScannerTask for " + jmxConfig.getAddress()
                     + " every " + jmxConfig.getQueryIntervalSeconds() + " seconds");
-            JMXScannerTask jmxScanner = new JMXScannerTask(jmxConfig, new InfluxDbPublisher(props));
+            JMXScannerTask jmxScanner = new JMXScannerTask(jmxConfig, publisher);
             jmxScanExecutor.scheduleAtFixedRate(jmxScanner, 0, jmxConfig.getQueryIntervalSeconds(), TimeUnit.SECONDS);
         }
     }

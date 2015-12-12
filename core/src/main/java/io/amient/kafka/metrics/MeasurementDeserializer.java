@@ -24,10 +24,10 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.specific.SpecificDatumReader;
-import org.apache.kafka.common.errors.SerializationException;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.IllegalFormatException;
 
 public class MeasurementDeserializer {
 
@@ -58,10 +58,10 @@ public class MeasurementDeserializer {
             if (object instanceof MeasurementV1) {
                 return (MeasurementV1) object;
             } else {
-                throw new SerializationException("Unsupported object type " + object.getClass());
+                throw new IllegalArgumentException("Unsupported object type " + object.getClass());
             }
         } catch (IOException e) {
-            throw new SerializationException("Error deserializing Measurement message version " + version, e);
+            throw new IllegalArgumentException("Error deserializing Measurement message version " + version, e);
         }
 
     }

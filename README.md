@@ -18,13 +18,15 @@ or other visualisation and alerting tools.
 		- [InfluxDB Backend](#configuration-loader-influxdb)
 		- [JMX Connectors](#configuration-loader-jmx)
 		- [Metrics Consumer](#configuration-loader-consumer)
-3. [TopicReporter](#usage-reporter)
+3. [MetricsAgent](#metrics-agent)
+    -
+4. [TopicReporter](#usage-reporter)
 	- [Usage in Kafka Broker, Kafka Prism, Kafka Producer (pre 0.8.2), Kafka Consumer (pre 0.9)](#usage-reporter-kafka-old)
 	- [Usage in Kafka NEW Producer (0.8.2+) and Consumer (0.9+)](#usage-reporter-kafka-new)
 	- [Usage in any application using dropwizard metrics (formerly yammer metrics)](#usage-reporter-dropwizard)
 	- [Configuration Options](#configuration-reporter)
-4. [Operations & Troubleshooting](#operations)
-5. [Development](#development)
+5. [Operations & Troubleshooting](#operations)
+6. [Development](#development)
 
 <a name="overview">
 ## Overview
@@ -216,6 +218,9 @@ parameter                                  | default           | description
 **kafka.metrics.bootstrap.servers**        | *inferred*        | Coma-separated list of kafka server addresses (host:port). When used in Brokers, `localhost` is default.
 *kafka.metrics.tag.<tag-name>.<tag=value>* | -                 | Fixed name-value pairs that will be used as tags in the published measurement for this instance, .e.g `kafka.metrics.tag.host.my-host-01` or `kafka.metrics.tag.dc.uk-az1`  
 
+<a name="metrics-agent">
+## Metrics Agent
+</a>
 
 <a name="operations">
 ## Operations & Troubleshooting

@@ -35,7 +35,8 @@ public class KafkaMetricsMain {
             props.load(new FileInputStream(propertiesFilename));
 
             try {
-                JMXScanner jmxScannerInstance = new JMXScanner(props);
+                MeasurementPublisher publisher = new InfluxDbPublisher(props);
+                JMXScanner jmxScannerInstance = new JMXScanner(props, publisher);
                 ConsumerMetrics consumer = new ConsumerMetrics(props);
                 while (!jmxScannerInstance.isTerminated() || !consumer.isTerminated()) {
                     Thread.sleep(5000);

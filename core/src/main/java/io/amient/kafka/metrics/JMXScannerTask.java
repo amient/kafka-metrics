@@ -19,7 +19,6 @@
 
 package io.amient.kafka.metrics;
 
-import com.yammer.metrics.core.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +39,6 @@ public class JMXScannerTask implements Runnable {
     private final JMXConnector jmxConnector;
     private final MBeanServerConnection conn;
     private final Map<String, String> tags;
-    private final Clock clock;
     private final MeasurementPublisher publisher;
     private final MeasurementFormatter formatter;
     private final ObjectName pattern;
@@ -92,7 +90,6 @@ public class JMXScannerTask implements Runnable {
         this.jmxConnector = JMXConnectorFactory.connect(url);
         this.conn = jmxConnector.getMBeanServerConnection();
         this.tags = config.getTags();
-        this.clock = Clock.defaultClock();
         this.publisher = publisher;
         this.formatter = new MeasurementFormatter();
         log.info("url=" + url + ", scope=" + config.queryScope);
@@ -101,7 +98,7 @@ public class JMXScannerTask implements Runnable {
     @Override
     public void run() {
         try {
-            final long timestamp = clock.time();
+            final long timestamp = System.currentTimeMillis();
             Set<ObjectInstance> beans = conn.queryMBeans(pattern, null);
             for (ObjectInstance i : beans) {
                 if (log.isDebugEnabled()) {

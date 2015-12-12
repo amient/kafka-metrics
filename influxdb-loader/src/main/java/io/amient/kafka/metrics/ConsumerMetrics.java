@@ -37,31 +37,6 @@ public class ConsumerMetrics {
 
     static private final Logger log = LoggerFactory.getLogger(ConsumerMetrics.class);
 
-    public static void main(String[] args) throws InterruptedException {
-        Properties props = new Properties();
-        props.put("consumer.topic", "_metrics");
-        props.put("consumer.numThreads", "1");
-        props.put("consumer.zookeeper.connect", "localhost:2181");
-        props.put("consumer.group.id", "kafka-metric-collector");
-        props.put("consumer.zookeeper.session.timeout.ms", "2000");
-        props.put("consumer.zookeeper.sync.time.ms", "200");
-        props.put("consumer.auto.commit.interval.ms", "10000");
-        props.put("consumer.auto.offset.reset", "smallest");
-        props.put(InfluxDbPublisher.COFNIG_INFLUXDB_DATABASE, "metrics");
-        props.put(InfluxDbPublisher.COFNIG_INFLUXDB_URL, "http://localhost:8086");
-        props.put(InfluxDbPublisher.COFNIG_INFLUXDB_USERNAME, "root");
-        props.put(InfluxDbPublisher.COFNIG_INFLUXDB_PASSWORD, "root");
-
-        try {
-            ConsumerMetrics consumer = new ConsumerMetrics(props);
-            while (!consumer.isTerminated()) {
-                Thread.sleep(5000);
-            }
-        } catch (Throwable e) {
-            log.error("Failed to launch KafkaMetrics JMX Scanner", e);
-        }
-    }
-
     private final ExecutorService executor;
 
     public ConsumerMetrics(Properties props) {
