@@ -7,6 +7,11 @@ or other visualisation and alerting tools.
 ### Contents
 
 1. [Overivew](#overview)
+	- [Architecture](#overview)
+	- [Basic Scenario](#scenario0) 
+	- [Multi-Server Scenario](#scenario1)
+	- [Multi-Data-Centre Scenario](#scenario3) 
+	- [Multi-Enviornment Scenario](#scenario2)
 2. [InfluxDB Loader](#usage-loader)
 	- [Quickstart](#quickstart) 
 	- [Configuration Options](#configuration-loader)
@@ -21,24 +26,50 @@ or other visualisation and alerting tools.
 4. [Operations & Troubleshooting](#operations)
 5. [Development](#development)
 
-<a name="overvuew">
+<a name="overview">
 ## Overview
 </a>
 
-![overview](doc/metrics.jpg)
+![overview](doc/metrics.png)
 
-There are 2 primary ways of how the aggregation of metrics from several components is achieved. 
+There are several ways of how the aggregation of metrics from several components is achieved. 
 
-For smaller infrastructures consisting of small number of clusters in proximity to each other, direct JMX scanner tasks 
-can be configured for each JMX Server exposed in the infrastructure and application landscape. This method doesn't
-require to include any extra code in the monitored applications as long as they already expsoe JMX MBeans.
+<a name="scenario0">
+### Basic Scenario
+</a>
 
-For larger, globally distributed infrastructures, or if more fault-tolerance is required for the metrics aggregation, 
-a TopicReporter which implements Yammer Metrics Reporter interface as well as Kafka-specific internal reporters. 
-This reporter publishes all the metrics to configured, most often local kafka topic `_metrics`. The JMX Scanner 
-aggregator is then replaced with Kafka Metrics Consumer  aggregator which then publishes these metrics into the InfluxDB.
-For multi-DC, potentially global deployments, Kafka Prism or Kafka Mirror Maker maker can placed between 
-the Kafka Metrics Consumer and the disparate metrics streams, first aggregating them in a single cluster.
+For smaller infrastructures consisting clusters on the same network, direct JMX scanner tasks can be configured for each JMX Server exposed in the infrastructure and application landscape. This method doesn't
+require to include any extra code in the monitored applications as long as they already expsoe JMX MBeans and in local environment the kafka topic can also be omitted.
+
+![scenario0](doc/kafka-metrics-scenario0.png)
+
+<a name="scenario1">
+### Multi-Server Scenario
+</a>
+
+For bigger application servers, where metrics from several hosts need be aggregated or in cases where more fault-tolerante collection of metrics is required , a combination of pluggable TopicReproter or JMX Metrics Agent(work-in-progress) and a  Kafka Topic can be deployed by configuration. The JMX Scanner used in the basic scenario is  replaced with Metrics Consumer which then publishes these metrics into the InfluxDB.
+
+
+![scenario0](doc/kafka-metrics-scenario1.png)
+
+<a name="scenario2">
+### Multi-Data-Centre Scenario
+</a>
+
+For multi-DC, potentially global deployments, where metrics from several disparate clusters need to be collected, each cluster has produces to it's local kafka brokers and one of the existing mirroring components (Kafka Prism, Kafka Mirror Maker, ...) is deployed to aggregate local metrics topic into a single aggregated stream of metrics from across the system.
+
+
+![scenario0](doc/kafka-metrics-scenario2.png)
+
+<a name="scenario3">
+### Multi-Environment Scenario
+</a>
+
+Finally in the heterogenous environments, where different kinds of application  and infrastructure stacks exist, firstly any JMX-Enabled or YAMMER-Enabled application can be plugged by configuration. 
+
+***For non-JVM applications or for JVM applications that do not expose JMX MBeans, there is a work in progress to have REST Metrics Agent which can receive http put requests and which can be deployed in all scenarios either with or without the metrics topic.***
+
+![scenario0](doc/kafka-metrics-scenario3.png)
 
 <a name="usage-loader">
 ## InfluxDB Loader Usage
@@ -107,7 +138,7 @@ consumer....                               | -                      | Any other 
 ## Usage of the TopicReporter
 </a>
 
-Due to different stage of maturity of various kafka components, watch out for subtle differences when adding 
+This reporter publishes all the metrics to configured, most often local kafka topic `_metrics`. Due to different stage of maturity of various kafka components, watch out for subtle differences when adding 
 TopicReporter class. To be able to use the reporter as plug-in for kafka brokers and tools you need to put the
 packaged jar in their classpath, which in kafka broker means putting it in the kafka /libs directory:
 
@@ -205,9 +236,9 @@ Using kafka console consumer with a formatter for kafka-metrics:
 ## Development
 </a>
  
-
-- DOC: draw different deployment setups 
-- DOC: provide recipe and bin script for local setup with influxdb and grafana
+- TODO: JMX Agent
+- TODO: REST Metrics Agent - ideally using Kafka REST API but only if Schema Registry is optional - for non-jvm apps
+- DOC: provide recipe and bin script for local setup with influxdb, grafana and kapacitor out-of-the-box 
 - DOC: sphinx documentation using generated versions in the examples
 - TODO: more robust connection error handling, e.g. when one of the cluster is not reachable, warn once and try reconnecting quietly
 - TODO: expose all except serde configs for kafka producer (NEW) configuration properties

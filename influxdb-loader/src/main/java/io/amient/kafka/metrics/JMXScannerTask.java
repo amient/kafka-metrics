@@ -104,6 +104,9 @@ public class JMXScannerTask implements Runnable {
             final long timestamp = clock.time();
             Set<ObjectInstance> beans = conn.queryMBeans(pattern, null);
             for (ObjectInstance i : beans) {
+                if (log.isDebugEnabled()) {
+                    log.debug(i.getObjectName().toString());
+                }
                 MeasurementV1[] measurements = extractMeasurements(i, timestamp);
                 for (MeasurementV1 measurement : measurements) {
                     if (measurement.getFields().size() == 0) {
