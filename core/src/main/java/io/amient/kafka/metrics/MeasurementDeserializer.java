@@ -19,15 +19,12 @@
 
 package io.amient.kafka.metrics;
 
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.specific.SpecificDatumReader;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.IllegalFormatException;
 
 public class MeasurementDeserializer {
 
@@ -48,8 +45,8 @@ public class MeasurementDeserializer {
             return null;
         }
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        Byte version = buffer.get();
-
+        byte magic = buffer.get();
+        byte version = buffer.get();
         try {
             int length = buffer.limit() - 1;
             int start = buffer.position() + buffer.arrayOffset();

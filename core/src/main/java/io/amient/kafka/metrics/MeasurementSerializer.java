@@ -32,7 +32,8 @@ import java.util.Map;
 
 public class MeasurementSerializer implements Serializer<MeasurementV1> {
 
-    private final static Byte VERSION = 1;
+    private final static byte MAGIC_BYTE = 0x1;
+    private final static byte VERSION = 1;
     private final EncoderFactory encoderFactory = EncoderFactory.get();
 
     public void configure(Map<String, ?> map, boolean b) {
@@ -43,6 +44,7 @@ public class MeasurementSerializer implements Serializer<MeasurementV1> {
 
         try {
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+            byteStream.write(MAGIC_BYTE);
             byteStream.write(VERSION);
             BinaryEncoder encoder = encoderFactory.directBinaryEncoder(byteStream, null);
             DatumWriter<MeasurementV1> writer = new SpecificDatumWriter<MeasurementV1>(measurement.getSchema());
