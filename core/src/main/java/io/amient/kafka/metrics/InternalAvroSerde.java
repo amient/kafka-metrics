@@ -19,14 +19,18 @@
 
 package io.amient.kafka.metrics;
 
-import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.DecoderFactory;
+import org.apache.avro.io.*;
 import org.apache.avro.specific.SpecificDatumReader;
+import org.apache.avro.specific.SpecificDatumWriter;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class MeasurementDeserializer {
+public class InternalAvroSerde {
+
+    private final static byte MAGIC_BYTE = 0x1;
+    private final static byte CURRENT_VERSION = 1;
 
     private enum SchemaVersions {
         V1(new SpecificDatumReader<MeasurementV1>(MeasurementV1.getClassSchema()));
@@ -38,9 +42,27 @@ public class MeasurementDeserializer {
         }
     }
 
+    private final EncoderFactory encoderFactory = EncoderFactory.get();
     private final DecoderFactory decoderFactory = DecoderFactory.get();
 
-    public MeasurementV1 deserialize(byte[] bytes) {
+    public byte[] toBytes(MeasurementV1 measurement) {
+        try {
+            ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+            byteStream.write(MAGIC_BYTE);
+            byteStream.write(CURRENT_VERSION);
+            BinaryEncoder encoder = encoderFactory.directBinaryEncoder(byteStream, null);
+            DatumWriter<MeasurementV1> writer = new SpecificDatumWriter<MeasurementV1>(measurement.getSchema());
+            writer.write(measurement, encoder);
+            encoder.flush();
+            byte[] result = byteStream.toByteArray();
+            byteStream.close();
+            return result;
+        } catch (IOException e) {
+            throw new RuntimeException("Error serializing Measurement object", e);
+        }
+    }
+
+    public MeasurementV1 fromBytes(byte[] bytes) {
         if (bytes == null) {
             return null;
         }
@@ -48,7 +70,7 @@ public class MeasurementDeserializer {
         byte magic = buffer.get();
         byte version = buffer.get();
         try {
-            int length = buffer.limit() - 1;
+            int length = buffer.limit() - 2;
             int start = buffer.position() + buffer.arrayOffset();
             DatumReader<?> reader = SchemaVersions.values()[version - 1].reader;
             Object object = reader.read(null, decoderFactory.binaryDecoder(buffer.array(), start, length, null));
@@ -62,5 +84,6 @@ public class MeasurementDeserializer {
         }
 
     }
+
 
 }

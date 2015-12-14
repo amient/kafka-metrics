@@ -19,4 +19,5 @@ apply plugin: "com.commercehub.gradle.plugin.avro"
 
 dependencies {
     compile "org.apache.avro:avro:1.7.7"
+    compile "com.fasterxml.jackson.core:jackson-databind:2.4.3"
 }

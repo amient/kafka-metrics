@@ -19,43 +19,20 @@
 
 package io.amient.kafka.metrics;
 
-import org.apache.avro.io.BinaryEncoder;
-import org.apache.avro.io.DatumWriter;
-import org.apache.avro.io.EncoderFactory;
-import org.apache.avro.specific.SpecificDatumWriter;
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Map;
 
 public class MeasurementSerializer implements Serializer<MeasurementV1> {
 
-    private final static byte MAGIC_BYTE = 0x1;
-    private final static byte VERSION = 1;
-    private final EncoderFactory encoderFactory = EncoderFactory.get();
+    private InternalAvroSerde internalAvro = new InternalAvroSerde();
 
     public void configure(Map<String, ?> map, boolean b) {
 
     }
 
     public byte[] serialize(String s, MeasurementV1 measurement) {
-
-        try {
-            ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-            byteStream.write(MAGIC_BYTE);
-            byteStream.write(VERSION);
-            BinaryEncoder encoder = encoderFactory.directBinaryEncoder(byteStream, null);
-            DatumWriter<MeasurementV1> writer = new SpecificDatumWriter<MeasurementV1>(measurement.getSchema());
-            writer.write(measurement, encoder);
-            encoder.flush();
-            byte[] result = byteStream.toByteArray();
-            byteStream.close();
-            return result;
-        } catch (IOException e) {
-            throw new SerializationException("Error serializing Measurement object", e);
-        }
+        return internalAvro.toBytes(measurement);
     }
 
     public void close() {

@@ -66,12 +66,12 @@ public class ConsumerMetrics {
 
         Map<String, Integer> topicCountMap = new HashMap<String, Integer>();
         topicCountMap.put(topic, new Integer(numThreads));
-        Map<String, List<KafkaStream<String, MeasurementV1>>> consumerMap
+        Map<String, List<KafkaStream<String, List<MeasurementV1>>>> consumerMap
                 = consumer.createMessageStreams(topicCountMap, new StringDecoder(config), new MeasurementDecoder(config));
 
-        List<KafkaStream<String, MeasurementV1>> streams = consumerMap.get(topic);
+        List<KafkaStream<String, List<MeasurementV1>>> streams = consumerMap.get(topic);
 
-        for (final KafkaStream<String, MeasurementV1> stream : streams) {
+        for (final KafkaStream<String, List<MeasurementV1>> stream : streams) {
             executor.submit(new Task(new InfluxDbPublisher(props), stream));
         }
         executor.shutdown();
@@ -83,24 +83,28 @@ public class ConsumerMetrics {
     }
 
     public static class Task implements Runnable {
-        final private KafkaStream<String, MeasurementV1> stream;
+        final private KafkaStream<String, List<MeasurementV1>> stream;
         final private MeasurementFormatter formatter;
         final private MeasurementPublisher publisher;
 
-        public Task(MeasurementPublisher publisher, KafkaStream<String, MeasurementV1> stream) {
+        public Task(MeasurementPublisher publisher, KafkaStream<String, List<MeasurementV1>> stream) {
             this.stream = stream;
             this.formatter = new MeasurementFormatter();
             this.publisher = publisher;
         }
 
         public void run() {
-            ConsumerIterator<String, MeasurementV1> it = stream.iterator();
+            ConsumerIterator<String, List<MeasurementV1>> it = stream.iterator();
             try {
                 while (it.hasNext()) {
                     try {
-                        MessageAndMetadata<String, MeasurementV1> m = it.next();
-                        publisher.publish(m.message());
-                        //formatter.writeTo(m.message(), System.out);
+                        MessageAndMetadata<String, List<MeasurementV1>> m = it.next();
+                        if (m.message() != null) {
+                            for (MeasurementV1 measurement : m.message()) {
+                                publisher.publish(measurement);
+                                //formatter.writeTo(m.message(), System.out);
+                            }
+                        }
                     } catch (RuntimeException e) {
                         log.error("Unable to publish measurement", e);
                     } catch (Throwable e) {

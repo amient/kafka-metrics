@@ -1,0 +1,20 @@
+
+task build << {
+
+}
+
+task hello(type: Exec) {
+    executable "sh"
+    args "-c", "echo 'hello from your shell' rootDir = $rootDir, buildDir = $buildDir"
+}
+
+task copyScripts(type: Copy) {
+    from new File("$projectDir/src")
+    into new File("$buildDir/scripts")
+    include('**/*.sh')
+}
+
+build.dependsOn {
+    tasks.getByName('hello')
+    tasks.getByName('copyScripts')
+}

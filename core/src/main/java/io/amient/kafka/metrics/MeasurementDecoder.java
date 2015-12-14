@@ -21,15 +21,33 @@ package io.amient.kafka.metrics;
 
 import kafka.serializer.Decoder;
 import kafka.utils.VerifiableProperties;
+import org.apache.kafka.common.errors.SerializationException;
 
-public class MeasurementDecoder extends MeasurementDeserializer implements Decoder<MeasurementV1> {
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
+
+public class MeasurementDecoder implements Decoder<List<MeasurementV1>> {
+
+    private InternalAvroSerde internalAvro = new InternalAvroSerde();
+    private AutoJsonDeserializer autoJsonDeserializer = new AutoJsonDeserializer();
 
     public MeasurementDecoder(VerifiableProperties props) {
+        this(props.props());
+    }
+
+    public MeasurementDecoder(Properties props) {
+        //at the point of implementing schema registry serde this will take schema.registry.url etc.
     }
 
     @Override
-    public MeasurementV1 fromBytes(byte[] bytes) {
-        return deserialize(bytes);
+    public List<MeasurementV1> fromBytes(byte[] bytes) {
+        switch(bytes[0]) {
+            case 0x0: throw new SerializationException("Schema Registry doesn't support maps and arrays yet.");
+            case 0x1: return Arrays.asList(internalAvro.fromBytes(bytes));
+            case '{': return autoJsonDeserializer.fromBytes(bytes);
+            default: throw new SerializationException("Serialization MAGIC_BYTE not recognized: " + bytes[0]);
+        }
     }
 
 }

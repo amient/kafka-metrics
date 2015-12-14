@@ -238,7 +238,9 @@ Using kafka console consumer with a formatter for kafka-metrics:
 ## Development
 </a>
  
-- TODO: Future-proof the serialization with magic byte for the time when Schema Registry will support maps
+DONE: Serialization with magic byte for the time when Schema Registry will support maps
+DONE: Detection of Samza metrics message format
+- TODO: exploit the fact that decoder returns List<Measurment> - kafka metrics can be optimised to send many metrics in a single message  
 - DOC: provide recipe and bin script for local setup with influxdb, grafana and kapacitor out-of-the-box 
 - DOC: sphinx documentation using generated versions in the examples
 - TODO: REST Metrics Agent - ideally using Kafka REST API but only if Schema Registry is optional - for non-jvm apps
