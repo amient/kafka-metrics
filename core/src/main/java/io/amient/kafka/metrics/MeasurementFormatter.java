@@ -23,6 +23,7 @@ import kafka.tools.MessageFormatter;
 import kafka.utils.VerifiableProperties;
 import org.apache.kafka.common.errors.SerializationException;
 
+import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -95,5 +96,12 @@ public class MeasurementFormatter implements MessageFormatter {
         }
         return null;
 
+    }
+
+    public String toString(MeasurementV1 measurement) {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(os);
+        writeTo(measurement, ps);
+        return os.toString();
     }
 }

@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class AutoJsonDeserializer {
 
@@ -57,7 +59,7 @@ public class AutoJsonDeserializer {
             String version = header.get("version").getTextValue();
             if (version.equals("0.0.1")) {
                 Long timestamp = header.get("time").getLongValue();
-                Map<String, String> tags = new HashMap<String, String>();
+                Map<String, String> commonTags = new HashMap<String, String>();
                 Iterator<Map.Entry<String, JsonNode>> tagFields = header.getFields();
                 while (tagFields.hasNext()) {
                     Map.Entry<String, JsonNode> tagField = tagFields.next();
@@ -65,27 +67,29 @@ public class AutoJsonDeserializer {
                     if (tagKey.equals("time")) continue;
                     if (tagKey.equals("reset-time")) continue;
                     if (tagKey.equals("version")) continue;
-                    tags.put(tagField.getKey(), tagField.getValue().getTextValue());
+                    commonTags.put(tagField.getKey(), tagField.getValue().getTextValue());
                 }
+
                 Iterator<Map.Entry<String, JsonNode>> metricFields = node.get("metrics").getFields();
                 while (metricFields.hasNext()) {
                     Map.Entry<String, JsonNode> metricField = metricFields.next();
-                    MeasurementV1 measurement = new MeasurementV1();
-                    measurement.setName(metricField.getKey());
-                    measurement.setTimestamp(timestamp);
-                    measurement.setTags(tags);
-                    Map<String, Double> fields = new HashMap<String, Double>();
+                    String name = metricField.getKey();
                     Iterator<Map.Entry<String, JsonNode>> fieldValues = metricField.getValue().getFields();
                     while (fieldValues.hasNext()) {
+                        MeasurementV1 measurement = new MeasurementV1();
+                        measurement.setName(name);
+                        measurement.setTimestamp(timestamp);
+                        Map<String, String> tags = new HashMap<String, String>(commonTags);
+                        Map<String, Double> fields = new HashMap<String, Double>();
                         Map.Entry<String, JsonNode> field = fieldValues.next();
                         Double value = formatter.anyValueToDouble(field.getValue().getNumberValue());
                         if (value != null) {
-                            fields.put(field.getKey(), value);
+                            String fieldName = tagSamzaMetricField(name, field.getKey(), tags);
+                            measurement.setTags(tags);
+                            fields.put(fieldName, value);
+                            measurement.setFields(fields);
+                            result.add(measurement);
                         }
-                    }
-                    if (fields.size() > 0) {
-                        measurement.setFields(fields);
-                        result.add(measurement);
                     }
                 }
             } else {
@@ -93,6 +97,72 @@ public class AutoJsonDeserializer {
             }
             return result;
         }
-    }
 
+
+        private Pattern fieldSystemStreamPartition = Pattern.compile("^(.+)-SystemStreamPartition \\[([^-]+), ([^-]+), ([0-9]+)\\]$");
+        private Pattern systemTopicPartitionField = Pattern.compile("^([^-]+)-([^-]+)-([0-9]+)-(.+)$");
+        private Pattern systemHostPortField = Pattern.compile("^([^-]+)-(.+-[0-9]+)-(.+)$");
+        private Pattern taskPartitionField = Pattern.compile("^(.+)-partition\\s([0-9]+)-(.+)$");
+        private Pattern systemField = Pattern.compile("^([^-]+)-(.+)$");
+
+        private String tagSamzaMetricField(String name, String field, Map<String, String> tags) {
+            if (name.equals("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics")) {
+                Matcher m1 = fieldSystemStreamPartition.matcher(field);
+                if (m1.find()) {
+                    //buffered-message-count-SystemStreamPartition [kafkaevents, datasync, 5]
+                    tags.put("system", m1.group(2));
+                    tags.put("topic", m1.group(3));
+                    tags.put("partition", m1.group(4));
+                    return m1.group(1);
+                }
+                Matcher m2 = systemHostPortField.matcher(field);
+                if (m2.find()) {
+                    //kafkayarn-bl-message-s01.visualdna.com-9092-bytes-read
+                    tags.put("system", m2.group(1));
+                    tags.put("broker", m2.group(2));
+                    return m2.group(3);
+                }
+                Matcher m3 = taskPartitionField.matcher(field);
+                if (m3.find()) {
+                    //taskname-partition 4-sends
+                    tags.put("task", m3.group(1));
+                    tags.put("partition", m3.group(2));
+                    return m3.group(3);
+                }
+            }
+            if (name.equals("org.apache.samza.system.kafka.KafkaSystemProducerMetrics")) {
+                Matcher m1 = systemField.matcher(field);
+                if (m1.find()) {
+                    //buffered-message-count-SystemStreamPartition [kafkaevents, datasync, 5]
+                    tags.put("system", m1.group(1));
+                    return m1.group(2);
+                }
+                Matcher m2 = taskPartitionField.matcher(field);
+                if (m2.find()) {
+                    //taskname-partition 4-sends
+                    tags.put("task", m2.group(1));
+                    tags.put("partition", m2.group(2));
+                    return m2.group(3);
+                }
+            }
+            if (name.equals("org.apache.samza.system.SystemProducersMetrics")) {
+                Matcher m1 = systemTopicPartitionField.matcher(field);
+                if (m1.find()) {
+                    //kafkaevents-datasync-10-messages-behind-high-watermark=0.0
+                    tags.put("system", m1.group(1));
+                    tags.put("topic", m1.group(2));
+                    tags.put("partition", m1.group(3));
+                    return m1.group(4);
+                }
+                Matcher m2 = taskPartitionField.matcher(field);
+                if (m2.find()) {
+                    //taskname-partition 4-sends
+                    tags.put("task", m2.group(1));
+                    tags.put("partition", m2.group(2));
+                    return m2.group(3);
+                }
+            }
+            return field;
+        }
+    }
 }

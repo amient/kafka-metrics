@@ -55,7 +55,7 @@ public class ConsumerMetrics {
             }
         }
 
-        if (consumerProps.size() ==0) {
+        if (consumerProps.size() == 0) {
             log.info("ConsumerMetrics disabled: " + executor.isTerminated());
             return;
         }
@@ -101,12 +101,21 @@ public class ConsumerMetrics {
                         MessageAndMetadata<String, List<MeasurementV1>> m = it.next();
                         if (m.message() != null) {
                             for (MeasurementV1 measurement : m.message()) {
-                                publisher.publish(measurement);
-                                //formatter.writeTo(m.message(), System.out);
+                                try {
+                                    publisher.publish(measurement);
+//                                    if (measurement.getName().equals("MessagesInPerSec")) {
+//                                        formatter.writeTo(measurement, System.out);
+//                                    }
+                                } catch (RuntimeException e) {
+
+                                    log.error("Unable to publish measurement " + formatter.toString(measurement)
+                                            + "tag count=" + measurement.getFields().size()
+                                            + ", field count=" + measurement.getFields().size()
+                                            , e);
+
+                                }
                             }
                         }
-                    } catch (RuntimeException e) {
-                        log.error("Unable to publish measurement", e);
                     } catch (Throwable e) {
                         e.printStackTrace();
                         return;

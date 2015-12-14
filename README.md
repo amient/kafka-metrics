@@ -17,6 +17,7 @@ or other visualisation and alerting tools.
 4. [TopicReporter](#usage-reporter)
 	- [Usage in Kafka Broker, Kafka Prism, Kafka Producer (pre 0.8.2), Kafka Consumer (pre 0.9)](#usage-reporter-kafka-old)
 	- [Usage in Kafka NEW Producer (0.8.2+) and Consumer (0.9+)](#usage-reporter-kafka-new)
+	- [Usage in Samza](#usage-samza)
 	- [Usage in any application using dropwizard metrics (formerly yammer metrics)](#usage-reporter-dropwizard)
 5. [Configuration](#configuration)
     - [InfluxDB Loader Options](#configuration-loader-influxdb)
@@ -129,6 +130,26 @@ kafka.metrics.<CONFIGURATION-OPTIONS>...
 metric.reporters=io.amient.kafka.metrics.TopicReporter
 kafka.metrics.<CONFIGURATION-OPTIONS>...
 ```
+
+<a name="usage-samza">
+###  Usage in Samza (0.9+) 
+</a>
+
+The Metrics Consumer understands json messages that Samza generates using MetricsSnapshotSerdeFactory.
+So just a normal samza metrics configuration without additional code, for example: 
+
+```
+metrics.reporters=topic
+metrics.reporter.topic.class=org.apache.samza.metrics.reporter.MetricsSnapshotReporterFactory
+metrics.reporter.topic.stream=kafkametrics._metrics
+serializers.registry.metrics.class=org.apache.samza.serializers.MetricsSnapshotSerdeFactory
+systems.kafkametrics.streams._metrics.samza.msg.serde=metrics
+systems.kafkametrics.samza.factory=org.apache.samza.system.kafka.KafkaSystemFactory
+systems.kafkametrics.consumer.zookeeper.connect=<...>
+systems.kafkametrics.producer.bootstrap.servers=<...>
+
+```
+
 
 <a name="usage-reporter-dropwizard">
 ### Usage in any application using dropwizard metrics (formerly yammer metrics)
