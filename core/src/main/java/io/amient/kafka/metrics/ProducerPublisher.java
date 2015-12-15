@@ -21,7 +21,12 @@ package io.amient.kafka.metrics;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.serialization.Serializer;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.Properties;
 
 public class ProducerPublisher implements MeasurementPublisher {
@@ -48,18 +53,37 @@ public class ProducerPublisher implements MeasurementPublisher {
             put("compression.type", "gzip");
             put("batch.size", "250");
             put("linger.ms", "1000");
-            put("key.serializer", org.apache.kafka.common.serialization.StringSerializer.class);
+            put("key.serializer", IntegerSerializer.class);
             put("value.serializer", io.amient.kafka.metrics.MeasurementSerializer.class);
         }});
     }
 
     @Override
     public void publish(MeasurementV1 m) {
-        producer.send(new ProducerRecord<String, Object>(topic, m.getName().toString(), m));
+        producer.send(new ProducerRecord<Integer, Object>(topic, m.getName().hashCode() + m.getTags().hashCode(), m));
     }
 
     @Override
     public void close() {
         producer.close();
+    }
+
+    public static class IntegerSerializer implements Serializer<Integer> {
+        @Override
+        public void configure(Map<String, ?> configs, boolean isKey) {}
+
+        @Override
+        public byte[] serialize(String topic, Integer data) {
+            if (data == null)
+                return null;
+            else {
+                ByteBuffer result = ByteBuffer.allocate(4);
+                result.putInt(data);
+                return result.array();
+            }
+        }
+
+        @Override
+        public void close() {}
     }
 }

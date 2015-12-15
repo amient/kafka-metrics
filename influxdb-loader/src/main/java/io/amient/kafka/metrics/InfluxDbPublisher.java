@@ -45,7 +45,7 @@ public class InfluxDbPublisher implements MeasurementPublisher {
         String username = config.getProperty(COFNIG_INFLUXDB_USERNAME, "root");
         String password = config.getProperty(COFNIG_INFLUXDB_PASSWORD, "root");
         influxDB = InfluxDBFactory.connect(address, username, password);
-        influxDB.enableBatch(1000, 250, TimeUnit.MILLISECONDS);
+        influxDB.enableBatch(10000, 500, TimeUnit.MILLISECONDS);
     }
 
     public void publish(MeasurementV1 m) {
