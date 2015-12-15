@@ -74,22 +74,34 @@ public class AutoJsonDeserializer {
                 while (metricFields.hasNext()) {
                     Map.Entry<String, JsonNode> metricField = metricFields.next();
                     String name = metricField.getKey();
+
+                    //group by identical tags
+                    Map<Map<String, String>, Map<String, Double>> points = new HashMap<Map<String, String>, Map<String, Double>>();
                     Iterator<Map.Entry<String, JsonNode>> fieldValues = metricField.getValue().getFields();
                     while (fieldValues.hasNext()) {
+                        Map.Entry<String, JsonNode> field = fieldValues.next();
+                        Double value = formatter.anyValueToDouble(field.getValue().getNumberValue());
+                        Map<String, String> tags = new HashMap<String, String>(commonTags);
+                        if (value != null) {
+                            String fieldName = tagSamzaMetricField(name, field.getKey(), tags);
+                            if (fieldName != null) {
+                                Map<String, Double> fields = points.get(tags);
+                                if (fields == null) {
+                                    fields = new HashMap<String, Double>();
+                                    points.put(tags, fields);
+                                }
+                                fields.put(fieldName, value);
+                            }
+                        }
+                    }
+
+                    for(Map.Entry<Map<String, String>, Map<String, Double>> e: points.entrySet()) {
                         MeasurementV1 measurement = new MeasurementV1();
                         measurement.setName(name);
                         measurement.setTimestamp(timestamp);
-                        Map<String, String> tags = new HashMap<String, String>(commonTags);
-                        Map<String, Double> fields = new HashMap<String, Double>();
-                        Map.Entry<String, JsonNode> field = fieldValues.next();
-                        Double value = formatter.anyValueToDouble(field.getValue().getNumberValue());
-                        if (value != null) {
-                            String fieldName = tagSamzaMetricField(name, field.getKey(), tags);
-                            measurement.setTags(tags);
-                            fields.put(fieldName, value);
-                            measurement.setFields(fields);
-                            result.add(measurement);
-                        }
+                        measurement.setTags(e.getKey());
+                        measurement.setFields(e.getValue());
+                        result.add(measurement);
                     }
                 }
             } else {
@@ -106,60 +118,42 @@ public class AutoJsonDeserializer {
         private Pattern systemField = Pattern.compile("^([^-]+)-(.+)$");
 
         private String tagSamzaMetricField(String name, String field, Map<String, String> tags) {
-            if (name.equals("org.apache.samza.system.kafka.KafkaSystemConsumerMetrics")) {
+            if (name.startsWith("org.apache.samza.system.")) {
                 Matcher m1 = fieldSystemStreamPartition.matcher(field);
                 if (m1.find()) {
-                    //buffered-message-count-SystemStreamPartition [kafkaevents, datasync, 5]
+                    //e.g. 'buffered-message-count-SystemStreamPartition [kafkaevents, datasync, 5]'
                     tags.put("system", m1.group(2));
                     tags.put("topic", m1.group(3));
                     tags.put("partition", m1.group(4));
                     return m1.group(1);
                 }
-                Matcher m2 = systemHostPortField.matcher(field);
+                Matcher m2 = systemTopicPartitionField.matcher(field);
                 if (m2.find()) {
-                    //kafkayarn-bl-message-s01.visualdna.com-9092-bytes-read
+                    //e.g. 'kafkaevents-datasync-10-messages-behind-high-watermark=0.0'
                     tags.put("system", m2.group(1));
-                    tags.put("broker", m2.group(2));
-                    return m2.group(3);
+                    tags.put("topic", m2.group(2));
+                    tags.put("partition", m2.group(3));
+                    return m2.group(4);
                 }
-                Matcher m3 = taskPartitionField.matcher(field);
+                Matcher m3 = systemHostPortField.matcher(field);
                 if (m3.find()) {
-                    //taskname-partition 4-sends
-                    tags.put("task", m3.group(1));
-                    tags.put("partition", m3.group(2));
+                    //e.g. 'kafkayarn-bl-message-s01.visualdna.com-9092-bytes-read'
+                    tags.put("system", m3.group(1));
+                    tags.put("broker", m3.group(2));
                     return m3.group(3);
                 }
-            }
-            if (name.equals("org.apache.samza.system.kafka.KafkaSystemProducerMetrics")) {
-                Matcher m1 = systemField.matcher(field);
-                if (m1.find()) {
-                    //buffered-message-count-SystemStreamPartition [kafkaevents, datasync, 5]
-                    tags.put("system", m1.group(1));
-                    return m1.group(2);
+                Matcher m4 = taskPartitionField.matcher(field);
+                if (m4.find()) {
+                    //e.g. 'taskname-partition 4-sends'
+                    tags.put("task", m4.group(1));
+                    tags.put("partition", m4.group(2));
+                    return m4.group(3);
                 }
-                Matcher m2 = taskPartitionField.matcher(field);
-                if (m2.find()) {
-                    //taskname-partition 4-sends
-                    tags.put("task", m2.group(1));
-                    tags.put("partition", m2.group(2));
-                    return m2.group(3);
-                }
-            }
-            if (name.equals("org.apache.samza.system.SystemProducersMetrics")) {
-                Matcher m1 = systemTopicPartitionField.matcher(field);
-                if (m1.find()) {
-                    //kafkaevents-datasync-10-messages-behind-high-watermark=0.0
-                    tags.put("system", m1.group(1));
-                    tags.put("topic", m1.group(2));
-                    tags.put("partition", m1.group(3));
-                    return m1.group(4);
-                }
-                Matcher m2 = taskPartitionField.matcher(field);
-                if (m2.find()) {
-                    //taskname-partition 4-sends
-                    tags.put("task", m2.group(1));
-                    tags.put("partition", m2.group(2));
-                    return m2.group(3);
+                Matcher m5 = systemField.matcher(field);
+                if (m5.find()) {
+                    //e.g. 'buffered-message-count-SystemStreamPartition [kafkaevents, datasync, 5]'
+                    tags.put("system", m5.group(1));
+                    return m5.group(2);
                 }
             }
             return field;
