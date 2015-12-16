@@ -261,6 +261,7 @@ Using kafka console consumer with a formatter for kafka-metrics:
  
 DONE: Serialization with magic byte for the time when Schema Registry will support maps
 DONE: Detection of Samza metrics message format
+DONE: ./gradlew :instance:make :instance:start
 - TODO: exploit the fact that decoder returns List<Measurment> - kafka metrics can be optimised to send many metrics in a single message  
 - DOC: provide recipe and bin script for local setup with influxdb, grafana and kapacitor out-of-the-box 
 - DOC: sphinx documentation using generated versions in the examples
@@ -268,12 +269,12 @@ DONE: Detection of Samza metrics message format
 - TODO: more robust connection error handling, e.g. when one of the cluster is not reachable, warn once and try reconnecting quietly
 - TODO: expose all except serde configs for kafka producer (NEW) configuration properties
 - TODO: configurable log4j.properties file location and enironment var overrides for configs
-- DESIGN: explore back-port to kafka 0.7
+- TODO: explore back-port to kafka 0.7
 - DESIGN: explore influxdb retention options
 - DESIGN: [Scripted Grafana dashboard](http://docs.grafana.org/reference/scripting/)  (kafka, prism)
 - DESIGN: should `_metrics` topic represent only per cluster metric stream, NEVER aggregate, and have aggregate have `_metrics_aggregated` or something ?
    - this requires the prism feature for topic name prefix/suffix 
-- TODO: go+influxdb+npm+grafana for debian, consider writing the influxdb-loader as golang kafka consumer which would lead to a kafka-metrics instance
+- DESIGN: consider writing the influxdb-loader as golang kafka consumer which would lead to a kafka-metrics instance
     - Go 1.4
     - MetricsInfluxDbPublisher (Go)
     - InfluxDB 0.9 (Go)
