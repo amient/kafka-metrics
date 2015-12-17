@@ -2,7 +2,14 @@
 
 BASE_DIR=@BASE_DIR@
 INSTALL_DIR="$BASE_DIR/.install"
-METRICS_CONFIG=$1
+CONFIG_DIR=$1
+LOG_DIR=$2
+#    TODO create pid files with hash of the config_dir so that multiple instances running can be distinguished
+
+if [ -z "$LOG_DIR" ]; then
+    echo "Usage: ./start-kafka-metrics-instance.sh <CONFIG_DIR> <LOG_DIR>"
+    exit 1;
+fi
 
 start() {
     INSTANCE=$1
@@ -63,11 +70,11 @@ start_with_output_redirect() {
 
 
 start_influxdb() {
-    INFLUXDB_CONFIG="$BASE_DIR/build/conf/influxdb.conf"
+    INFLUXDB_CONFIG="$CONFIG_DIR/influxdb.conf"
     if [ -f "$INFLUXDB_CONFIG" ]; then
-        export STDOUT="$BASE_DIR/.logs/influxdb/stdout.log"
-        export STDERR="$BASE_DIR/.logs/influxdb/stderr.log"
-        mkdir -p "$BASE_DIR/.logs/influxdb"
+        mkdir -p "$LOG_DIR/influxdb"
+        export STDOUT="$LOG_DIR/influxdb/stdout.log"
+        export STDERR="$LOG_DIR/influxdb/stderr.log"
         echo "starting influxdb deamon with config $INFLUXDB_CONFIG"
 #        FIXME influxdb doesn't respect the STDOUT and STDERR env vars so for now we use output redirect
         start_with_output_redirect "influxdb" influxd -config $INFLUXDB_CONFIG
@@ -77,23 +84,15 @@ start_influxdb() {
 }
 
 start_grafana() {
-    GRAFANA_CONFIG="$BASE_DIR/build/conf/grafana.ini"
+    GRAFANA_CONFIG="$CONFIG_DIR/grafana.ini"
     if [ -f "$GRAFANA_CONFIG" ]; then
         export GF_LOG_MODE="file"
-        export GF_PATHS_LOGS="$BASE_DIR/.logs/grafana"
+        export GF_PATHS_LOGS="$LOG_DIR/grafana"
         echo "starting grafana with config $GRAFANA_CONFIG"
         cd "$INSTALL_DIR/golang/src/github.com/grafana/grafana"
         start "grafana" "./bin/grafana-server" "-config" $GRAFANA_CONFIG
     fi
 }
 
-start_influxdb_loader() {
-    mkdir -p "$BASE_DIR/.logs/influxdb-loader"
-    export STDOUT="$BASE_DIR/.logs/influxdb-loader/stdout.log"
-    export STDERR="$BASE_DIR/.logs/influxdb-loader/stderr.log"
-    start_with_output_redirect "influxdb-loader" $BASE_DIR/../influxdb-loader/build/scripts/influxdb-loader "$METRICS_CONFIG"
-}
-
 start_influxdb
 start_grafana
-start_influxdb_loader

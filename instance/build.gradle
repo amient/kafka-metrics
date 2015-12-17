@@ -4,20 +4,30 @@ task restart(type: Exec, dependsOn: ["stop"]) {
     executable "$buildDir/bin/start-kafka-metrics-instance.sh"
 }
 
-task start(type: Exec, dependsOn: "build") {
+task start(type: Exec, dependsOn: ["copyScripts"]) {
     executable "$buildDir/bin/start-kafka-metrics-instance.sh"
-    args "$buildDir/conf/influxdb-loader.properties"
+    if (project.hasProperty("confDir") && project.hasProperty("logDir")) {
+        args "$confDir", "$logDir"
+    } else if (project.hasProperty("confDir")) {
+        args "$confDir", "$projectDir/.logs"
+    } else if (project.hasProperty("logDir")) {
+        args "$buildDir/conf", "$logDir"
+    } else {
+        args "$buildDir/conf", "$projectDir/.logs"
+    }
 }
 
-task stop(type: Exec, dependsOn: "build") {
+if (!project.hasProperty("confDir")) {
+    tasks.getByName("start").dependsOn "copyConfigs"
+}
+
+task stop(type: Exec, dependsOn: "copyConfigs") {
     executable "$buildDir/bin/stop-kafka-metrics-instance.sh"
 }
 
-task make(type: Exec, dependsOn: ["stop", ":influxdb-loader:build"]) {
+task make(type: Exec, dependsOn: ["copyScripts"]) {
     executable "$buildDir/bin/install-kafka-metrics-instance.sh"
 }
-
-task build(dependsOn: ["copyScripts", "copyConfigs"])
 
 task copyScripts(type: Copy) {
     from new File("$projectDir/src")
@@ -27,7 +37,7 @@ task copyScripts(type: Copy) {
     fileMode 0777
 }
 
-task copyConfigs(dependsOn: ["copyInfluxDbConfig", "copyGrafanaConfig", "copyMetricsConfig"])
+task copyConfigs(dependsOn: ["copyInfluxDbConfig", "copyGrafanaConfig"])
 
 task copyInfluxDbConfig(type: Copy) {
     from new File("$projectDir/src")
@@ -41,12 +51,6 @@ task copyGrafanaConfig(type: Copy) {
     into new File("$buildDir/conf")
     filter(ReplaceTokens, tokens: [DATA_DIR: project.projectDir.toString() + '/.data/grafana'])
     include('**/*.ini')
-}
-
-task copyMetricsConfig(type: Copy) {
-    from new File("$projectDir/src")
-    into new File("$buildDir/conf")
-    include('**/*.properties')
 }
 
 //task downloadInfluxDb(type: Download) {

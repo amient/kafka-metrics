@@ -30,4 +30,3 @@ stop() {
 
 stop influxdb
 stop grafana
-stop influxdb-loader
