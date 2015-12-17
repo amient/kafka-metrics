@@ -259,9 +259,8 @@ Using kafka console consumer with a formatter for kafka-metrics:
 ## Development
 </a>
  
-DONE: Serialization with magic byte for the time when Schema Registry will support maps
-DONE: Detection of Samza metrics message format
-DONE: ./gradlew :instance:make :instance:start
+- TODO: add Kapacitor (also written in Go) to the default metrics) 
+- TODO: generate dashboard for clusters, brokers and prisms via grafana [scripting](http://docs.grafana.org/reference/scripting/) or [templating](http://docs.grafana.org/reference/templating/) 
 - TODO: exploit the fact that decoder returns List<Measurment> - kafka metrics can be optimised to send many metrics in a single message  
 - DOC: provide recipe and bin script for local setup with influxdb, grafana and kapacitor out-of-the-box 
 - DOC: sphinx documentation using generated versions in the examples
