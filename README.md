@@ -12,7 +12,7 @@ or other visualisation and alerting tools.
 	- [Multi-Server Scenario](#scenario1)
 	- [Multi-Data-Centre Scenario](#scenario3) 
 	- [Multi-Enviornment Scenario](#scenario2)
-2  [Usage](#usage-instance)
+2. [Usage](#usage-instance)
  	- [Bundled Instance: InfluxDB, Grafana](#usage-instance)
  	- [InfluxDB Loader](#usage-loader) 
  	- [MetricsAgent](#metrics-agent)
