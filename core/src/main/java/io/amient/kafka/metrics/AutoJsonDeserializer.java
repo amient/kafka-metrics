@@ -111,14 +111,15 @@ public class AutoJsonDeserializer {
         }
 
 
-        private Pattern fieldSystemStreamPartition = Pattern.compile("^(.+)-SystemStreamPartition \\[([^-]+), ([^-]+), ([0-9]+)\\]$");
+        private Pattern fieldSystemStreamPartition = Pattern.compile("^(.+)-SystemStreamPartition \\[([^,]+), ([^,]+), ([0-9]+)\\]$");
         private Pattern systemTopicPartitionField = Pattern.compile("^([^-]+)-([^-]+)-([0-9]+)-(.+)$");
         private Pattern systemHostPortField = Pattern.compile("^([^-]+)-(.+-[0-9]+)-(.+)$");
         private Pattern taskPartitionField = Pattern.compile("^(.+)-partition\\s([0-9]+)-(.+)$");
+        private Pattern partitionField = Pattern.compile("^partition\\s([0-9]+)-(.+)$");
         private Pattern systemField = Pattern.compile("^([^-]+)-(.+)$");
 
         private String tagSamzaMetricField(String name, String field, Map<String, String> tags) {
-            if (name.startsWith("org.apache.samza.system.")) {
+            if (name.startsWith("org.apache.samza.")) {
                 Matcher m1 = fieldSystemStreamPartition.matcher(field);
                 if (m1.find()) {
                     //e.g. 'buffered-message-count-SystemStreamPartition [kafkaevents, datasync, 5]'
@@ -149,11 +150,17 @@ public class AutoJsonDeserializer {
                     tags.put("partition", m4.group(2));
                     return m4.group(3);
                 }
-                Matcher m5 = systemField.matcher(field);
+                Matcher m5 = partitionField.matcher(field);
                 if (m5.find()) {
-                    //e.g. 'buffered-message-count-SystemStreamPartition [kafkaevents, datasync, 5]'
-                    tags.put("system", m5.group(1));
+                    //e.g. 'partition 4-restore-time'
+                    tags.put("partition", m5.group(1));
                     return m5.group(2);
+                }
+                Matcher m6 = systemField.matcher(field);
+                if (m6.find()) {
+                    //e.g. 'buffered-message-count-SystemStreamPartition [kafkaevents, datasync, 5]'
+                    tags.put("system", m6.group(1));
+                    return m6.group(2);
                 }
             }
             return field;
