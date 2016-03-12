@@ -20,6 +20,7 @@ or other visualisation and alerting tools.
 	- [Usage in Samza](#usage-samza)
 	- [Usage in any application using dropwizard metrics (formerly yammer metrics)](#usage-reporter-dropwizard)
 5. [Configuration](#configuration)
+    - [Built-in Instance (InfluxDB + Grafana)](#configuration-instance)
     - [InfluxDB Loader Options](#configuration-loader-influxdb)
     - [JMX Scanner Options](#configuration-scanner)
     - [Metrics Producer Options](#configuration-producer)
@@ -193,6 +194,17 @@ reporter.start(10, TimeUnit.SECONDS);
 <a name="configuration">
 ## Configuration
 </a>
+
+<a name="configuration-instance">
+### Built-in Instance (InfluxDB + Grafana)
+</a>
+
+The following command should install and launch local instance of InfluxDB and Grafana that can be used with all
+the scenarios whether for testing on development machine or deployed on a production host.
+  
+```
+./gradlew :instance:start
+```
 
 <a name="configuration-loader-influxdb">
 ### InfluxDB back options
