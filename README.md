@@ -275,7 +275,6 @@ Using kafka console consumer with a formatter for kafka-metrics:
 - TODO: add Kapacitor (also written in Go) to the default metrics) 
 - TODO: generate dashboard for clusters, brokers and prisms via grafana [scripting](http://docs.grafana.org/reference/scripting/) or [templating](http://docs.grafana.org/reference/templating/) 
 - TODO: exploit the fact that decoder returns List<Measurment> - kafka metrics can be optimised to send many metrics in a single message  
-- DOC: provide recipe and bin script for local setup with influxdb, grafana and kapacitor out-of-the-box 
 - DOC: sphinx documentation using generated versions in the examples
 - TODO: REST Metrics Agent - ideally using Kafka REST API but only if Schema Registry is optional - for non-jvm apps
 - TODO: more robust connection error handling, e.g. when one of the cluster is not reachable, warn once and try reconnecting quietly
