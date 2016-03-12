@@ -12,20 +12,21 @@ or other visualisation and alerting tools.
 	- [Multi-Server Scenario](#scenario1)
 	- [Multi-Data-Centre Scenario](#scenario3) 
 	- [Multi-Enviornment Scenario](#scenario2)
-2. [InfluxDB Loader](#usage-loader) 
-3. [MetricsAgent](#metrics-agent)
-4. [TopicReporter](#usage-reporter)
-	- [Usage in Kafka Broker, Kafka Prism, Kafka Producer (pre 0.8.2), Kafka Consumer (pre 0.9)](#usage-reporter-kafka-old)
-	- [Usage in Kafka NEW Producer (0.8.2+) and Consumer (0.9+)](#usage-reporter-kafka-new)
-	- [Usage in Samza](#usage-samza)
-	- [Usage in any application using dropwizard metrics (formerly yammer metrics)](#usage-reporter-dropwizard)
-5. [Configuration](#configuration)
-    - [Built-in Instance (InfluxDB + Grafana)](#configuration-instance)
+2  [Usage](#usage-instance)
+ 	- [Bundled Instance: InfluxDB, Grafana](#usage-instance)
+ 	- [InfluxDB Loader](#usage-loader) 
+ 	- [MetricsAgent](#metrics-agent)
+ 	- [TopicReporter](#usage-reporter)
+	    - [Usage in Kafka Broker, Kafka Prism, Kafka Producer (pre 0.8.2), Kafka Consumer (pre 0.9)](#usage-reporter-kafka-old)
+	    - [Usage in Kafka NEW Producer (0.8.2+) and Consumer (0.9+)](#usage-reporter-kafka-new)
+	    - [Usage in Samza](#usage-samza)
+	    - [Usage in any application using dropwizard metrics (formerly yammer metrics)](#usage-reporter-dropwizard)
+6. [Configuration](#configuration)
     - [InfluxDB Loader Options](#configuration-loader-influxdb)
     - [JMX Scanner Options](#configuration-scanner)
     - [Metrics Producer Options](#configuration-producer)
-6. [Operations & Troubleshooting](#operations)
-7. [Development](#development)
+7. [Operations & Troubleshooting](#operations)
+8. [Development](#development)
 
 <a name="overview">
 ## Overview
@@ -69,6 +70,17 @@ Finally, in the heterogenous environments, where different kinds of application 
 ***For non-JVM applications or for JVM applications that do not expose JMX MBeans, there is a work in progress to have REST Metrics Agent which can receive http put requests and which can be deployed in all scenarios either with or without the metrics topic.***
 
 ![scenario0](doc/kafka-metrics-scenario3.png)
+
+<a name="usage-instance">
+### Launching Bundled Instance 
+</a>
+
+The following command should install and launch local instance of **InfluxDB** and **Grafana** that can be used with all
+the scenarios whether for testing on development machine or deployed on a production host.
+  
+```
+./gradlew :instance:start
+```
 
 <a name="usage-loader">
 ## InfluxDB Loader Usage
@@ -194,17 +206,6 @@ reporter.start(10, TimeUnit.SECONDS);
 <a name="configuration">
 ## Configuration
 </a>
-
-<a name="configuration-instance">
-### Built-in Instance (InfluxDB + Grafana)
-</a>
-
-The following command should install and launch local instance of InfluxDB and Grafana that can be used with all
-the scenarios whether for testing on development machine or deployed on a production host.
-  
-```
-./gradlew :instance:start
-```
 
 <a name="configuration-loader-influxdb">
 ### InfluxDB back options
