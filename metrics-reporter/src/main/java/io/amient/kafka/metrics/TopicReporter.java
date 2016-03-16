@@ -120,6 +120,11 @@ public class TopicReporter implements
     }
 
     @Override
+    public void metricRemoval(KafkaMetric metric) {
+        kafkaMetrics.remove(metric.metricName());
+    }
+
+    @Override
     public void close() {
         stopReporter();
     }
