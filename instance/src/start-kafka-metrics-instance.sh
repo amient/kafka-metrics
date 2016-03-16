@@ -91,6 +91,7 @@ start_grafana() {
         echo "starting grafana with config $GRAFANA_CONFIG"
         cd "$INSTALL_DIR/golang/src/github.com/grafana/grafana"
         start "grafana" "./bin/grafana-server" "-config" $GRAFANA_CONFIG
+        curl 'http://admin:admin@localhost:3000/api/datasources' -X POST -H 'Content-Type: application/json;charset=UTF-8' --data-binary '{"name": "local influxdb", "type": "influxdb", "access": "proxy", "url": "http://localhost:8086","password": "root", "user": "root", "database": "metrics", "isDefault": true}'
     fi
 }
 
