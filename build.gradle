@@ -1,4 +1,4 @@
-ext.javaVersion = 1.6
+ext.javaVersion = 1.7
 ext.kafkaVersion = '0.8.2.2'
 
 project.version = ext.kafkaVersion
@@ -30,10 +30,8 @@ allprojects {
         libsDirName = 'lib'
 
         if (!hasProperty('scalaVersion')) {
-            ext.scalaVersion = '2.10.5'
+            ext.scalaVersion = '2.11.8'
         }
-
-        ext.defaultScalaVersion = '2.10.5'
 
         if (scalaVersion.startsWith('2.10')) {
             ext.baseScalaVersion = '2.10'
