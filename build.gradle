@@ -1,5 +1,5 @@
 ext.javaVersion = 1.7
-ext.kafkaVersion = '0.9.0.1'
+ext.kafkaVersion = '0.8.2.2'
 
 project.version = ext.kafkaVersion
 
