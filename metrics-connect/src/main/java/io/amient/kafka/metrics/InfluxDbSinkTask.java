@@ -21,7 +21,6 @@ package io.amient.kafka.metrics;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 
@@ -31,7 +30,8 @@ import java.util.Properties;
 
 public class InfluxDbSinkTask extends SinkTask {
 
-//    private InfluxDbPublisher publisher = null;
+    private InfluxDbPublisher publisher = null;
+    private MeasurementConverter converter = null;
 
     @Override
     public String version() {
@@ -42,15 +42,15 @@ public class InfluxDbSinkTask extends SinkTask {
     public void start(Map<String, String> props) {
         Properties publisherConfig = new Properties();
         publisherConfig.putAll(props);
-//        publisher = new InfluxDbPublisher(publisherConfig);
+        publisher = new InfluxDbPublisher(publisherConfig);
+        converter = new MeasurementConverter();
     }
 
     @Override
     public void put(Collection<SinkRecord> sinkRecords) {
         for (SinkRecord record : sinkRecords) {
-            Object logicalValue = record.value();
-            Schema schema = record.valueSchema();
-            //TODO publish to influxdb
+            MeasurementV1 measurement = converter.fromConnectData(record.valueSchema(), record.value());
+            publisher.publish(measurement);
         }
     }
 
@@ -61,6 +61,6 @@ public class InfluxDbSinkTask extends SinkTask {
 
     @Override
     public void stop() {
-//        publisher.close();
+        publisher.close();
     }
 }

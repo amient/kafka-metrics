@@ -57,6 +57,7 @@ public class InfluxDbSinkConnector extends SinkConnector {
     public List<Map<String, String>> taskConfigs(int maxTasks) {
         ArrayList<Map<String, String>> configs = new ArrayList<>();
         for (int i = 0; i < maxTasks; i++) {
+            System.out.println("Setting up task " + i + " with config " + config);
             configs.add(config);
         }
         return configs;

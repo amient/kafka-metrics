@@ -59,13 +59,17 @@ public class MeasurementConverter implements Converter {
     @Override
     public byte[] fromConnectData(String topic, Schema schema, Object logicalValue) {
         if (logicalValue == null) return null;
+        return internalAvro.toBytes(fromConnectData(schema, logicalValue));
+    }
+
+    public MeasurementV1 fromConnectData(Schema schema, Object logicalValue) {
         Struct struct = (Struct) logicalValue;
         MeasurementV1.Builder builder = MeasurementV1.newBuilder();
         builder.setTimestamp((long) struct.get("timestamp"));
         builder.setName((String) struct.get("name"));
         builder.setTags((Map<String, String>) struct.get("tags"));
         builder.setFields((Map<String, Double>) struct.get("fields"));
-        return internalAvro.toBytes(builder.build());
+        return builder.build();
     }
 
 }
