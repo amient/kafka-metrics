@@ -4,14 +4,16 @@ mainClassName = 'io.amient.kafka.metrics.KafkaMetricsMain'
 
 dependencies {
     compile project(':core')
-    compile group: 'org.influxdb', name: 'influxdb-java', version: '2.0'
+    compile group: 'org.apache.kafka', name: 'kafka_' + baseScalaVersion, version: rootProject.kafkaVersion
 }
 
 jar {
     manifest {
         attributes 'Main-Class': mainClassName
     }
-    from {
-        (configurations.compile + configurations.provided).collect { it.isDirectory() ? it : zipTree(it) }
+
+    from (configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } ) {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/LICENSE*"
     }
 }
