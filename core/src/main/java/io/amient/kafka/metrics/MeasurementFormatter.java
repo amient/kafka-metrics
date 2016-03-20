@@ -20,7 +20,6 @@
 package io.amient.kafka.metrics;
 
 import kafka.tools.MessageFormatter;
-import kafka.utils.VerifiableProperties;
 import org.apache.kafka.common.errors.SerializationException;
 
 import java.io.ByteArrayOutputStream;
