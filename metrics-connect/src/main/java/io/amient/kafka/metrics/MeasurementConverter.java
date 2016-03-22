@@ -36,7 +36,9 @@ public class MeasurementConverter implements Converter {
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         internalAvro = new InternalAvroSerde();
-        this.schema = SchemaBuilder.struct().name("Measurement")
+        this.schema = SchemaBuilder.struct()
+                .name("Measurement")
+                .version(1)
                 .field("timestamp", Schema.INT64_SCHEMA)
                 .field("name", Schema.STRING_SCHEMA)
                 .field("tags", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA).schema())
