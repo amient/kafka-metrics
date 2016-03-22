@@ -61,6 +61,6 @@ public class InfluxDbSinkTask extends SinkTask {
 
     @Override
     public void stop() {
-        publisher.close();
+        if (publisher != null) publisher.close();
     }
 }
