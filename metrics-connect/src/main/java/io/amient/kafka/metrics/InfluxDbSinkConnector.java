@@ -19,6 +19,7 @@
 
 package io.amient.kafka.metrics;
 
+import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
@@ -49,6 +50,16 @@ public class InfluxDbSinkConnector extends SinkConnector {
     }
 
     @Override
+    public ConfigDef config() {
+        ConfigDef defs = new ConfigDef();
+        defs.define("influxdb.url", ConfigDef.Type.STRING, "http://localhost:8086", ConfigDef.Importance.HIGH, "influxdb server http address in the form http://<host>:<port>");
+        defs.define("influxdb.database", ConfigDef.Type.STRING, "metrics", ConfigDef.Importance.HIGH, "influxdb database name to which to publish");
+        defs.define("influxdb.username", ConfigDef.Type.STRING, "", ConfigDef.Importance.MEDIUM, "influxdb username to use for http updates");
+        defs.define("influxdb.password", ConfigDef.Type.STRING, "", ConfigDef.Importance.MEDIUM, "influxdb password to use for http updates");
+        return defs;
+    }
+
+    @Override
     public Class<? extends Task> taskClass() {
         return InfluxDbSinkTask.class;
     }
@@ -57,7 +68,6 @@ public class InfluxDbSinkConnector extends SinkConnector {
     public List<Map<String, String>> taskConfigs(int maxTasks) {
         ArrayList<Map<String, String>> configs = new ArrayList<>();
         for (int i = 0; i < maxTasks; i++) {
-            System.out.println("Setting up task " + i + " with config " + config);
             configs.add(config);
         }
         return configs;
