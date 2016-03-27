@@ -40,7 +40,7 @@ public class KafkaMetricsProcessorBuilder {
     private MetricsRegistry registry;
     private Map<MetricName, KafkaMetric> kafkaMetrics = null;
     private Map<String, String> tags = new HashMap<String, String>();
-    private String topic = "_metrics";
+    private String topic = "metrics";
     private String bootstrapServers;
     private Integer pollingIntervalSeconds = 10;
 
