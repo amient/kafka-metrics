@@ -40,7 +40,7 @@ public class ConsumerMetrics {
     private final ExecutorService executor;
 
     public ConsumerMetrics(Properties props) {
-        String topic = props.getProperty("consumer.topic", "_metrics");
+        String topic = props.getProperty("consumer.topic", "metrics");
         Integer numThreads = Integer.parseInt(props.getProperty("consumer.numThreads", "1"));
         executor = Executors.newFixedThreadPool(numThreads);
 

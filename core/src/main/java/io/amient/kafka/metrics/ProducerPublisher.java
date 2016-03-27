@@ -40,7 +40,7 @@ public class ProducerPublisher implements MeasurementPublisher {
     public ProducerPublisher(Properties props) {
         this(
             props.getProperty(ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS, "localhost:9092"),
-            props.getProperty(ProducerPublisher.CONFIG_METRICS_TOPIC, "_metrics")
+            props.getProperty(ProducerPublisher.CONFIG_METRICS_TOPIC, "metrics")
         );
     }
 
