@@ -114,7 +114,7 @@ these into the kafka metrics topic.
 ## Usage of the TopicReporter
 </a>
 
-This reporter publishes all the metrics to configured, most often local kafka topic `_metrics`. Due to different stage of maturity of various kafka components, watch out for subtle differences when adding 
+This reporter publishes all the metrics to configured, most often local kafka topic `metrics`. Due to different stage of maturity of various kafka components, watch out for subtle differences when adding 
 TopicReporter class. To be able to use the reporter as plug-in for kafka brokers and tools you need to put the
 packaged jar in their classpath, which in kafka broker means putting it in the kafka /libs directory:
 
@@ -154,9 +154,9 @@ So just a normal samza metrics configuration without additional code, for exampl
 ```
 metrics.reporters=topic
 metrics.reporter.topic.class=org.apache.samza.metrics.reporter.MetricsSnapshotReporterFactory
-metrics.reporter.topic.stream=kafkametrics._metrics
+metrics.reporter.topic.stream=kafkametrics.metrics
 serializers.registry.metrics.class=org.apache.samza.serializers.MetricsSnapshotSerdeFactory
-systems.kafkametrics.streams._metrics.samza.msg.serde=metrics
+systems.kafkametrics.streams.metrics.samza.msg.serde=metrics
 systems.kafkametrics.samza.factory=org.apache.samza.system.kafka.KafkaSystemFactory
 systems.kafkametrics.consumer.zookeeper.connect=<...>
 systems.kafkametrics.producer.bootstrap.servers=<...>
@@ -186,7 +186,7 @@ will produce kafka-metrics messages to a configured topic every given time inter
 ``` 
 val registry = MetricsRegistry.defaultRegistry()
 val reporter = TopicReporter.forRegistry(registry)
-    .setTopic("_metrics") //this is also default
+    .setTopic("metrics") //this is also default
     .setBootstrapServers("kafka1:9092,kafka2:9092")
     .setTag("host", "my-host-xyz")
     .setTag("app", "my-app-name")
@@ -219,7 +219,7 @@ parameter                                  | default                | descriptio
 **influxdb.url**                           | `http://localhost:8086`| URL of the InfluxDB API Instance
 **influxdb.username**                      | `root`                 | Authentication username for API calls
 **influxdb.password**                      | `root`                 | Authentication passord for API calls
-consumer.topic                             | `_metrics`             | Topic to consumer (where measurements are published by Reporter)
+consumer.topic                             | `metrics`              | Topic to consumer (where measurements are published by Reporter)
 consumer.numThreads                        | `1`                    | Number of consumer threads
 consumer.zookeeper.connect                 | `localhost:2181`       | As per [Kafka Consumer Configuration](http://kafka.apache.org/documentation.html#consumerconfigs)
 consumer.group.id                          | -                      | As per Any [Kafka Consumer Configuration](http://kafka.apache.org/documentation.html#consumerconfigs)
@@ -249,7 +249,7 @@ The following configuration options can be used with the TopicReporter and Metri
 
 parameter                                  | default           | description
 -------------------------------------------|-------------------|------------------------------------------------------------------------------
-**kafka.metrics.topic**                    | `_metrics`        | Topic name where metrics are published
+**kafka.metrics.topic**                    | `metrics`         | Topic name where metrics are published
 **kafka.metrics.polling.interval**         | `10s`             | Poll and publish frequency of metrics, llowed interval values: 1s, 10s, 1m
 **kafka.metrics.bootstrap.servers**        | *inferred*        | Coma-separated list of kafka server addresses (host:port). When used in Brokers, `localhost` is default.
 *kafka.metrics.tag.<tag-name>.<tag=value>* | -                 | Fixed name-value pairs that will be used as tags in the published measurement for this instance, .e.g `kafka.metrics.tag.host.my-host-01` or `kafka.metrics.tag.dc.uk-az1`  
@@ -265,13 +265,14 @@ parameter                                  | default           | description
 Using kafka console consumer with a formatter for kafka-metrics:
 
 ```
-./bin/kafka-console-consumer.sh --zookeeper localhost --topic _metrics --formatter io.amient.kafka.metrics.MeasurementFormatter
+./bin/kafka-console-consumer.sh --zookeeper localhost --topic metrics --formatter io.amient.kafka.metrics.MeasurementFormatter
 ```
 
 <a name="development">
 ## Development
 </a>
  
+- FIXME: reporter embedded in the broker doesn't recover after timeout network failure 
 - TODO: add Kapacitor (also written in Go) to the default metrics) 
 - TODO: generate dashboard for clusters, brokers and prisms via grafana [scripting](http://docs.grafana.org/reference/scripting/) or [templating](http://docs.grafana.org/reference/templating/) 
 - TODO: exploit the fact that decoder returns List<Measurment> - kafka metrics can be optimised to send many metrics in a single message  
@@ -283,7 +284,7 @@ Using kafka console consumer with a formatter for kafka-metrics:
 - TODO: explore back-port to kafka 0.7
 - DESIGN: explore influxdb retention options
 - DESIGN: [Scripted Grafana dashboard](http://docs.grafana.org/reference/scripting/)  (kafka, prism)
-- DESIGN: should `_metrics` topic represent only per cluster metric stream, NEVER aggregate, and have aggregate have `_metrics_aggregated` or something ?
+- DESIGN: should `metrics` topic represent only per cluster metric stream, NEVER aggregate, and have aggregate have `metrics_aggregated` or something ?
    - this requires the prism feature for topic name prefix/suffix 
 - DESIGN: consider writing the influxdb-loader as golang kafka consumer which would lead to a kafka-metrics instance
     - Go 1.4
