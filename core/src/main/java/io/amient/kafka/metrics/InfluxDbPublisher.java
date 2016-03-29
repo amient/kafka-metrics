@@ -35,20 +35,42 @@ public class InfluxDbPublisher implements MeasurementPublisher {
     static final String COFNIG_INFLUXDB_URL = "influxdb.url";
     static final String COFNIG_INFLUXDB_USERNAME = "influxdb.username";
     static final String COFNIG_INFLUXDB_PASSWORD = "influxdb.password";
-    final private InfluxDB influxDB;
+    private static final int DEFAULT_BACK_OFF_MS = 15000;
     final private String dbName;
     final private String address;
+    private final String username;
+    private final String password;
+
+    private InfluxDB influxDB = null;
+
+    volatile private long failureTimestamp = 0;
 
     public InfluxDbPublisher(Properties config) {
         this.dbName = config.getProperty(COFNIG_INFLUXDB_DATABASE, "metrics");
         this.address = config.getProperty(COFNIG_INFLUXDB_URL, "http://localhost:8086");
-        String username = config.getProperty(COFNIG_INFLUXDB_USERNAME, "root");
-        String password = config.getProperty(COFNIG_INFLUXDB_PASSWORD, "root");
-        influxDB = InfluxDBFactory.connect(address, username, password);
-        influxDB.enableBatch(1000, 100, TimeUnit.MILLISECONDS);
+        this.username = config.getProperty(COFNIG_INFLUXDB_USERNAME, "root");
+        this.password = config.getProperty(COFNIG_INFLUXDB_PASSWORD, "root");
     }
 
     public void publish(MeasurementV1 m) {
+        Long time = m.getTimestamp();
+        if (failureTimestamp > 0) {
+            if (failureTimestamp + DEFAULT_BACK_OFF_MS < time) return; else failureTimestamp = 0;
+        }
+        try {
+            tryPublish(m);
+        } catch (Throwable e) {
+            log.warn("Failed to publish measurement to InfluxDB, will retry...", e);
+            influxDB = null;
+            failureTimestamp = time;
+        }
+    }
+
+    public void tryPublish(MeasurementV1 m) {
+        if (influxDB == null) {
+            influxDB = InfluxDBFactory.connect(address, username, password);
+            influxDB.enableBatch(1000, 100, TimeUnit.MILLISECONDS);
+        }
         Point.Builder builder = Point.measurement(m.getName().toString()).time(m.getTimestamp(), TimeUnit.MILLISECONDS);
         for (java.util.Map.Entry<String, String> tag : m.getTags().entrySet()) {
             builder.tag(tag.getKey().toString(), tag.getValue().toString());
@@ -58,6 +80,8 @@ public class InfluxDbPublisher implements MeasurementPublisher {
         }
         influxDB.write(dbName, "default", builder.build());
     }
+
+
 
     public void close() {
 
