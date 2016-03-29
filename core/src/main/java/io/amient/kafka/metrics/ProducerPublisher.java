@@ -23,6 +23,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -31,11 +33,16 @@ import java.util.Properties;
 
 public class ProducerPublisher implements MeasurementPublisher {
 
+    static private final Logger log = LoggerFactory.getLogger(ProducerPublisher.class);
     public static final String CONFIG_BOOTSTRAP_SERVERS = "kafka.metrics.bootstrap.servers";
     public static final String CONFIG_METRICS_TOPIC = "kafka.metrics.topic";
 
+    private static final int DEFAULT_BACK_OFF_MS = 10000;
+
     private final KafkaProducer producer;
     private final String topic;
+
+    volatile private long failureTimestamp = 0;
 
     public ProducerPublisher(Properties props) {
         this(
@@ -58,8 +65,20 @@ public class ProducerPublisher implements MeasurementPublisher {
         }});
     }
 
-    @Override
     public void publish(MeasurementV1 m) {
+        Long time = m.getTimestamp();
+        if (failureTimestamp > 0) {
+            if (failureTimestamp + DEFAULT_BACK_OFF_MS < time) return; else failureTimestamp = 0;
+        }
+        try {
+            tryPublish(m);
+        } catch (Throwable e) {
+            log.warn("Failed to publish measurement to kafka topic, will retry...", e);
+            failureTimestamp = time;
+        }
+    }
+
+    public void tryPublish(MeasurementV1 m) {
         producer.send(new ProducerRecord<Integer, Object>(topic, m.getName().hashCode() + m.getTags().hashCode(), m));
     }
 
