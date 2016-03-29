@@ -83,8 +83,8 @@ public class TopicReporter implements
 
     public synchronized void stopReporter() {
         if (initialized && running) {
-            underlying.shutdown();
             running = false;
+            underlying.shutdown();
             log.info("Stopped TopicReporter instance");
             underlying = builder.build();
         }
