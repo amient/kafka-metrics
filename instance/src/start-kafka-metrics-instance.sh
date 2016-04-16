@@ -6,8 +6,9 @@ CONFIG_DIR=$1
 LOG_DIR=$2
 #    TODO create pid files with hash of the config_dir so that multiple instances running can be distinguished
 
-if [ -z "$LOG_DIR" ]; then
+if [ -z "$LOG_DIR" ] || [ -z "$CONFIG_DIR" ]; then
     echo "Usage: ./start-kafka-metrics-instance.sh <CONFIG_DIR> <LOG_DIR>"
+    echo "CONFIG_DIR provided should contain grafana.ini and influxfb.conf files"
     exit 1;
 fi
 
@@ -92,6 +93,7 @@ start_grafana() {
         cd "$INSTALL_DIR/golang/src/github.com/grafana/grafana"
         start "grafana" "./bin/grafana-server" "-config" $GRAFANA_CONFIG
         curl 'http://admin:admin@localhost:3000/api/datasources' -X POST -H 'Content-Type: application/json;charset=UTF-8' --data-binary '{"name": "local influxdb", "type": "influxdb", "access": "direct", "url": "http://localhost:8086", "password": "none", "user": "kafka-metrics", "database": "metrics", "isDefault": true}'
+        echo ""
     fi
 }
 

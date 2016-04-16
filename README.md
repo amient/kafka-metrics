@@ -75,12 +75,25 @@ Finally, in the heterogenous environments, where different kinds of application 
 ### Launching Bundled Instance 
 </a>
 
-The following command should install and launch local instance of **InfluxDB** and **Grafana** that can be used with all
-the scenarios whether for testing on development machine or deployed on a production host.
+The following command should build all components:
+
+```
+./gradlew :instance:make
+```
+
+..and to launch the local instance of **InfluxDB** and **Grafana** that can be used with all
+the scenarios whether for testing on development machine or deployed on a production host:
   
 ```
-./gradlew :instance:start
+./instance/build/bin/start-kafka-metrics-instance.sh <CONF_DIR> <LOG_DIR>
 ```
+
+An example local config is provided unders `./instance/build/conf`. To stop the instance:
+
+```
+./instance/build/bin/stop-kafka-metrics-instance.sh <CONF_DIR>
+```
+
 
 <a name="usage-loader">
 ## InfluxDB Loader Usage
@@ -96,7 +109,7 @@ If you have a Kafka Broker running locally which has a JMX Server enabled say on
  the following default config file for jmx scanner local aggrgator: 
 
 ```
-./bin/kafka-metrics-loader.sh influxdb-loader/conf/local-jmx.properties
+./influxdb-loader/build/scripts/influxdb-loader influxdb-loader/conf/local-jmx.properties
 ```
 
 <a name="metrics-agent">
@@ -107,7 +120,7 @@ The purpose of agent is to move expensive metrics collection like JMX polling cl
 these into the kafka metrics topic. 
 
 ```
-./bin/kafka-metrics-agent.sh <PROPERTIES-FILE>
+./metrics-agent/build/scripts/kafka-metrics-agent <CONFIG-PROPERTIES-FILE>
 ```
 
 <a name="usage-reporter">

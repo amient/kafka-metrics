@@ -1,37 +1,12 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
-task restart(type: Exec, dependsOn: ["stop"]) {
-    executable "$buildDir/bin/start-kafka-metrics-instance.sh"
-}
-
-task start(type: Exec, dependsOn: ["copyScripts"]) {
-    executable "$buildDir/bin/start-kafka-metrics-instance.sh"
-    if (project.hasProperty("confDir") && project.hasProperty("logDir")) {
-        args "$confDir", "$logDir"
-    } else if (project.hasProperty("confDir")) {
-        args "$confDir", "$projectDir/.logs"
-    } else if (project.hasProperty("logDir")) {
-        args "$buildDir/conf", "$logDir"
-    } else {
-        args "$buildDir/conf", "$projectDir/.logs"
-    }
-}
-
-if (!project.hasProperty("confDir")) {
-    tasks.getByName("start").dependsOn "copyConfigs"
-}
-
-task stop(type: Exec, dependsOn: "copyConfigs") {
-    executable "$buildDir/bin/stop-kafka-metrics-instance.sh"
-}
-
 task make(type: Exec, dependsOn: ["copyScripts"]) {
     executable "$buildDir/bin/install-kafka-metrics-instance.sh"
 }
 
 task copyScripts(type: Copy) {
     from new File("$projectDir/src")
-    into new File("$buildDir/bin")
+    into new File("$buildDir/scripts")
     filter(ReplaceTokens, tokens: [BASE_DIR: project.projectDir.toString()])
     include('**/*.sh')
     fileMode 0777
@@ -52,24 +27,3 @@ task copyGrafanaConfig(type: Copy) {
     filter(ReplaceTokens, tokens: [DATA_DIR: project.projectDir.toString() + '/.data/grafana'])
     include('**/*.ini')
 }
-
-//task downloadInfluxDb(type: Download) {
-//    sourceUrl = 'http://www.someurl.com/my.zip'
-//    target = file(project.rootDir + '/.download')
-//}
-//
-//class Download extends DefaultTask {
-//    @Input
-//    String sourceUrl
-//
-//    @OutputFile
-//    File target
-//
-//    @TaskAction
-//    void download() {
-//        ant.get(src: sourceUrl, dest: target)
-//    }
-//}
-
-
-
