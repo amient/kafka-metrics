@@ -1,8 +1,8 @@
-# Kafka Metrics  <sup><sup>:no_entry_sign: UNDER CONSTRUCTION</sup></sup>
+# Kafka Metrics
 
-This is a system whose purpose is to aggregate metrics from a topology of Kafka Brokers, Prisms, Producer and Consumer
-applications. It uses InfluxDB as the time series back-end which can then be used for example with Grafana front-end
-or other visualisation and alerting tools.
+This is a system whose purpose is to aggregate metrics from a topology of Kafka Brokers, Connectors, Mirrors, Stream 
+Topologies and other Producer and Consumer applications. It uses InfluxDB as the time series back-end which can then 
+be used for example with Grafana front-end or other visualisation and alerting tools.
 
 ### Contents
 
@@ -75,12 +75,25 @@ Finally, in the heterogenous environments, where different kinds of application 
 ### Launching Bundled Instance 
 </a>
 
-The following command should install and launch local instance of **InfluxDB** and **Grafana** that can be used with all
-the scenarios whether for testing on development machine or deployed on a production host.
+The following command should build all components:
+
+```
+./gradlew :instance:make
+```
+
+..and to launch the local instance of **InfluxDB** and **Grafana** that can be used with all
+the scenarios whether for testing on development machine or deployed on a production host:
   
 ```
-./gradlew :instance:start
+./instance/build/bin/start-kafka-metrics-instance.sh <CONF_DIR> <LOG_DIR>
 ```
+
+An example local config is provided unders `./instance/build/conf`. To stop the instance:
+
+```
+./instance/build/bin/stop-kafka-metrics-instance.sh <CONF_DIR>
+```
+
 
 <a name="usage-loader">
 ## InfluxDB Loader Usage
@@ -96,7 +109,7 @@ If you have a Kafka Broker running locally which has a JMX Server enabled say on
  the following default config file for jmx scanner local aggrgator: 
 
 ```
-./bin/kafka-metrics-loader.sh influxdb-loader/conf/local-jmx.properties
+./influxdb-loader/build/scripts/influxdb-loader influxdb-loader/conf/local-jmx.properties
 ```
 
 <a name="metrics-agent">
@@ -107,7 +120,7 @@ The purpose of agent is to move expensive metrics collection like JMX polling cl
 these into the kafka metrics topic. 
 
 ```
-./bin/kafka-metrics-agent.sh <PROPERTIES-FILE>
+./metrics-agent/build/scripts/kafka-metrics-agent <CONFIG-PROPERTIES-FILE>
 ```
 
 <a name="usage-reporter">
@@ -271,18 +284,16 @@ Using kafka console consumer with a formatter for kafka-metrics:
 <a name="development">
 ## Development
 </a>
- 
-- FIXME: reporter embedded in the broker doesn't recover after timeout network failure 
-- TODO: add Kapacitor (also written in Go) to the default metrics) 
-- TODO: generate dashboard for clusters, brokers and prisms via grafana [scripting](http://docs.grafana.org/reference/scripting/) or [templating](http://docs.grafana.org/reference/templating/) 
-- TODO: exploit the fact that decoder returns List<Measurment> - kafka metrics can be optimised to send many metrics in a single message  
+
+- TODO: back-port to kafka 0.7 as there are still 0.7 clusters out there
 - DOC: sphinx documentation using generated versions in the examples
-- TODO: REST Metrics Agent - ideally using Kafka REST API but only if Schema Registry is optional - for non-jvm apps
+- TODO: configurable log4j.properties file location and environment var overrides for configs
+- TODO: expose all configs for kafka producer (NEW) configuration properties
 - TODO: more robust connection error handling, e.g. when one of the cluster is not reachable, warn once and try reconnecting quietly
-- TODO: expose all except serde configs for kafka producer (NEW) configuration properties
-- TODO: configurable log4j.properties file location and enironment var overrides for configs
-- TODO: explore back-port to kafka 0.7
-- DESIGN: explore influxdb retention options
+- TODO: explore influxdb retention options
+- DESIGN: add Kapacitor (also written in Go) to the default metrics instance
+- DESIGN: discover(zk or kafka admin api) and generate cluster dashboards via grafana [scripting](http://docs.grafana.org/reference/scripting/) or [templating](http://docs.grafana.org/reference/templating/) 
+- DESIGN: REST Metrics Agent - ideally re-using Kafka REST API but only if Schema Registry is optional - for non-jvm apps
 - DESIGN: [Scripted Grafana dashboard](http://docs.grafana.org/reference/scripting/)  (kafka, prism)
 - DESIGN: should `metrics` topic represent only per cluster metric stream, NEVER aggregate, and have aggregate have `metrics_aggregated` or something ?
    - this requires the prism feature for topic name prefix/suffix 
