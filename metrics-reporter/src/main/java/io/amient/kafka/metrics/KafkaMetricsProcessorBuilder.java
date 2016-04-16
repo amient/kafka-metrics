@@ -135,7 +135,7 @@ public class KafkaMetricsProcessorBuilder {
     public KafkaMetricsProcessor build() {
         log.info("Building TopicReporter: " + ProducerPublisher.CONFIG_METRICS_TOPIC + "=" + topic);
         log.info("Building TopicReporter: " + ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS + "=" + bootstrapServers);
-        log.info("Building TopicReporter: " + CONFIG_POLLING_INTERVAL + pollingIntervalSeconds);
+        log.info("Building TopicReporter: " + CONFIG_POLLING_INTERVAL + "=" + pollingIntervalSeconds);
         for(Map.Entry<String,String> tag: tags.entrySet()) {
             log.info("Building TopicReporter with tag: " + tag.getKey() + "=" + tag.getValue());
         }
