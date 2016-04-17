@@ -1,7 +1,7 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
-task make(type: Exec, dependsOn: ["copyScripts"]) {
-    executable "$buildDir/bin/install-kafka-metrics-instance.sh"
+task install(type: Exec, dependsOn: ["copyScripts"]) {
+    executable "$buildDir/scripts/install-kafka-metrics-instance.sh"
 }
 
 task copyScripts(type: Copy) {

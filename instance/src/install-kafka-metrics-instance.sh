@@ -7,24 +7,22 @@ export GOPATH="$INSTALL_DIR/golang"
 
 install_influxdb() {
     echo "Installing latest InfluxDB..."
-    ensure_golang
-    cd $GOPATH
-    go get github.com/influxdb/influxdb
-    cd $GOPATH/src/github.com/influxdb/
+    cd "$GOPATH/src"
+    go get github.com/influxdata/influxdb
+    cd $GOPATH/src/github.com/influxdata/
     go get ./...
     go install ./...
 }
 
 install_grafana() {
     echo "Installing latest Grafana..."
-    ensure_golang
-    cd $GOPATH
+    cd "$GOPATH/src"
     go get github.com/grafana/grafana
     cd $GOPATH/src/github.com/grafana/grafana
-#    go run build.go setup              # (only needed once to install godep)
-#    $GOPATH/bin/godep restore          # (will pull down all golang lib dependencies in your current GOPATH)
+    go run build.go setup              # (only needed once to install godep)
+    $GOPATH/bin/godep restore          # (will pull down all golang lib dependencies in your current GOPATH)
     #FIXME grafana head after 3.0.0-pre1 is broken
-#    go run build.go build
+    go run build.go build
     npm install
     npm install -g grunt-cli
     grunt
@@ -51,8 +49,11 @@ ensure_golang() {
           *) URL="" ;;
         esac
         if [ ! -z "$URL" ]; then
-            download $URL "$DOWNLOAD_DIR/$(basename $URL)"
-            tar -C /usr/local -xzf go$VERSION.$OS-$ARCH.tar.gz
+            GOPACKAGE="$DOWNLOAD_DIR/$(basename $URL)"
+            if [ ! -f "$GOPACKAGE" ]; then
+                download $URL "$GOPACKAGE"
+                tar -C /usr/local -xzf "$GOPACKAGE"
+            fi
             export PATH=$PATH:/usr/local/go/bin
 #            TODO echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.profile
 #            TODO echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bash_profile
@@ -68,5 +69,6 @@ ensure_golang() {
     fi
 }
 
+ensure_golang
 install_influxdb
 install_grafana
