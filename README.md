@@ -17,7 +17,6 @@ non-intrusive inspection of existing kafka clusters and applications to global s
 2. [Modules](#usage-instance)
  	- [Bundled Instance: InfluxDB, Grafana](#usage-instance)
  	- [InfluxDB Loader](#usage-loader) 
-    - [Metrics Connect](#usage-connect)
  	- [Metrics Agent](#metrics-agent)
  	- [TopicReporter](#usage-reporter)
 	    - [Usage in Kafka Broker, Kafka Prism, Kafka Producer (pre 0.8.2), Kafka Consumer (pre 0.9)](#usage-reporter-kafka-old)
@@ -138,63 +137,6 @@ InfluxDB and Grafana running locally, you can use the following script and confi
 
 ```
 ./influxdb-loader/build/scripts/influxdb-loader influxdb-loader/conf/local-jmx.properties
-```
-
-<a name="usage-connect">
-## Metrics Connect Usage
-</a>
-
-This module builds on Kafka Connect framework. The connector is jar that needs to be first built: 
-
-```
-./gradlew :metrics-connect:build
-```
-
-The command above generates a jar that needs to be in the classpath of Kafka Connect which can be achieved
-by copying the jar into `libs` directory of the kafka installation:
-
-```
-cp ./metrics-connect/build/lib/metrics-connect-*.jar $KAFKA_HOME/libs
-```
-
-Now you can launch connect instance with the following example configurations:
-
-```
-"$KAFKA_HOME/bin/connect-standalone.sh" "metrics-connect.properties" "influxdb-sink.properties" "hdfs-sink.properties"
-```
-
-First, `metrics-connect.properties` is the connect worker configuration which doesn't specify any connectors
-but says that all connectors will use MeasurementConverter to deserialize measurement objects.
-
-```
-bootstrap.servers=localhost:9092
-key.converter=org.apache.kafka.connect.storage.StringConverter
-value.converter=io.amient.kafka.metrics.MeasurementConverter
-...
-```
-
-The second configuration file is a sink connector that loads the measurements to InfluxDB, for example:
-
-```
-name=metrics-influxdb-sink
-connector.class=io.amient.kafka.metrics.InfluxDbSinkConnector
-topics=metric
-...
-```
-
-The thrid configuration file is a sink connector that loads the measurements to hdfs, for example as parquet files:
-
-```
-name=metrics-hdfs-sink
-topics=metrics
-connector.class=io.confluent.connect.hdfs.HdfsSinkConnector
-format.class=io.confluent.connect.hdfs.parquet.ParquetFormat
-partitioner.class=io.confluent.connect.hdfs.partitioner.TimeBasedPartitioner
-path.format='d'=YYYY'-'MM'-'dd/
-partition.duration.ms=86400000
-locale=en
-timezone=Etc/GMT+1
-...
 ```
 
 <a name="metrics-agent">
