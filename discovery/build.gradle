@@ -3,10 +3,8 @@ apply plugin: 'application'
 mainClassName = 'io.amient.kafka.metrics.DiscoveryTool'
 
 dependencies {
-    compile project(':core')
     compile group: 'com.101tec', name: 'zkclient', version:'0.5'
     compile group: 'com.fasterxml.jackson.core', name:'jackson-databind', version: '2.7.3'
-    compile group: 'org.apache.kafka', name: 'kafka_' + baseScalaVersion, version: rootProject.kafkaVersion
 }
 
 jar {

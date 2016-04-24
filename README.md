@@ -116,19 +116,43 @@ To stop the instance:
 </a>
 
 Metrics Discovery module can be used for generating configs and dashboards for existing Kafka Clusters. It uses
-Zookeeper Client and generates configurations for scanners/agents and Grafana. It is a Java Application that
-can be built with the following command:
+Zookeeper Client and generates Grafana dashboards into the local instance and configurations into the STDOUT. The 
+output configuration can be piped into one of the runtime modules, e.g. InfluxDBLoader or Metrics Agent.
+It is a Java Application and first has to be built with the following command:
 
     ./gradlew :metrics-discovery:build
 
-Example usage for a single-node broker running on localhost: 
+### Example usage for local Kafka cluster and local InfluxDB
 
-    ./metrics-discovery/build/scripts/metrics-discovery "localhost:2181" "local-kafka-cluster"
+    ./discovery/build/scripts/discovery \
+        --zookeeper "localhost:2181" \
+        --dashboard "local-kafka-cluster" \
+        --dashboard-path "./instance/.data/grafana/dashboards" \
+        --influxdb "http://root:root@localhost:8086" | ./influxdb-loader/build/scripts/influxdb-loader
 
-The above command also launch an embedded jmx scanner and assuming you have launched the bundled metrics instance,
-the dashboard can be viewed directly with this link: 
+The above command discovers all the brokers that are part of the cluster and configures an influxdb-loader
+ instance using local instance of InfluxDB. It also generates a dashboard for the discovered cluster which
+ can be viewed, assuming Grafan is also running alongside InfluxDB (see Metrics Instance):
 
     http://localhost:3000/dashboard/file/local-kafka-cluster.json
+
+### Example usage for remote Kafka cluster with Metrics Agent 
+
+On the Kafka Cluster:
+
+    ./discovery/build/scripts/discovery \
+        --zookeeper "<SEED-ZK-HOST>:<ZK-PORT>" \
+        --dashboard "remote-kafka-cluster" \
+        --topic "metrics" | ./metrics-agent/build/scripts/metrics-agent
+
+On the Kafka Metrics instance:
+ 
+    ./discovery/build/scripts/discovery \
+        --zookeeper "<SEED-ZK-HOST>:<ZK-PORT>" \
+        --topic "metrics" \
+        --dashboard "remote-kafka-cluster" \
+        --dashboard-path "./instance/.data/grafana/dashboards" \
+        --influxdb "http://root:root@localhost:8086" | ./influxdb-loader/build/scripts/influxdb-loader
 
 <a name="usage-loader">
 ## InfluxDB Loader Usage

@@ -26,6 +26,7 @@ public class Dashboard {
         root.put("originalTitle", title);
         root.put("style", "dark");
         root.put("timezone", "browser");
+        root.put("refresh", "10s");
         root.set("time", mapper.createObjectNode().put("from", "now-30m").put("to", "now"));
         root.put("editable", true);
         root.put("hideControls", false);
