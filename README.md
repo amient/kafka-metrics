@@ -16,6 +16,7 @@ non-intrusive inspection of existing kafka clusters and applications to global s
 	- [Multi-Enviornment Scenario](#scenario2)
 2. [Modules](#usage-instance)
  	- [Bundled Instance: InfluxDB, Grafana](#usage-instance)
+ 	- [Metrics Discovery Tool](#usage-discovery)
  	- [InfluxDB Loader](#usage-loader) 
     - [Metrics Connect](#usage-connect)
  	- [Metrics Agent](#metrics-agent)
@@ -109,6 +110,17 @@ An example local config is provided under `./instance/build/conf` which can be u
 To stop the instance:
 
     ./instance/build/bin/stop-kafka-metrics-instance.sh ./instance/build/conf
+
+<a name="usage-discovery">
+## Metrics Discovery Usage
+</a>
+
+Metrics Discovery module can be used for generating configs and dashboards for existing Kafka Clusters. It uses
+Kafka Metadata API and Zookeeper API so it is a Java Application.
+
+Example usage for a single-node broker running on localhost: 
+
+    ./metrics-discovery/build/scripts/metrics-discovery "Local Kafka Cluster" "localhost:9092" 19092
 
 <a name="usage-loader">
 ## InfluxDB Loader Usage
