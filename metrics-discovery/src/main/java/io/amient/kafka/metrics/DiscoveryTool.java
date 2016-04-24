@@ -89,7 +89,7 @@ public class DiscoveryTool {
                 scannerProps.put(String.format("jmx.%d.tag.name", section), name);
 
                 //dashboard row for broker
-                ArrayNode brokerRow = dash.newRow(String.format("Kafka Broker ID %s, %s", broker.id, broker.hostPort()), 250);
+                ArrayNode brokerRow = dash.newRow(String.format("Kafka Broker ID %s @ %s", broker.id, broker.hostPort()), 250);
                 dash.newGraph(brokerRow, "Memory", 4, true);
                 dash.newGraph(brokerRow, "LogFlush", 4, true);
                 dash.newGraph(brokerRow, "Throughput", 4, true);

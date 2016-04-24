@@ -116,11 +116,19 @@ To stop the instance:
 </a>
 
 Metrics Discovery module can be used for generating configs and dashboards for existing Kafka Clusters. It uses
-Kafka Metadata API and Zookeeper API so it is a Java Application.
+Zookeeper Client and generates configurations for scanners/agents and Grafana. It is a Java Application that
+can be built with the following command:
+
+    ./gradlew :metrics-discovery:build
 
 Example usage for a single-node broker running on localhost: 
 
-    ./metrics-discovery/build/scripts/metrics-discovery "Local Kafka Cluster" "localhost:9092" 19092
+    ./metrics-discovery/build/scripts/metrics-discovery "localhost:2181" "local-kafka-cluster"
+
+The above command also launch an embedded jmx scanner and assuming you have launched the bundled metrics instance,
+the dashboard can be viewed directly with this link: 
+
+    http://localhost:3000/dashboard/file/local-kafka-cluster.json
 
 <a name="usage-loader">
 ## InfluxDB Loader Usage
