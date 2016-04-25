@@ -18,6 +18,8 @@ import java.util.*;
 
 public class DiscoveryTool {
 
+    private static String DEFAULT_INTERVAL="10s";
+
     public static void main(String[] args) throws IOException {
 
         OptionParser parser = new OptionParser();
@@ -53,7 +55,7 @@ public class DiscoveryTool {
                 if (opts.has(topic)) {
                     //producer/reporter settings
                     System.out.println("kafka.metrics.topic=" + opts.valueOf(topic));
-                    System.out.println("kafka.metrics.polling.interval=5s");
+                    System.out.println("kafka.metrics.polling.interval=" + DEFAULT_INTERVAL);
                     System.out.println("kafka.metrics.bootstrap.servers=" + brokers.get(0).hostPort());
                     //consumer settings
                     System.out.println("consumer.topic=" + opts.valueOf(topic));
@@ -93,26 +95,6 @@ public class DiscoveryTool {
         try (BrokerInfoClient client = new BrokerInfoClient(zkConnect)) {
             return client.getBrokers();
         }
-    }
-
-
-    public Dashboard generateDashboard(String name, List<Broker> brokers, String dataSource, String path) {
-        Dashboard dash = new Dashboard(name, dataSource, path + "/" + name + ".json");
-
-        ArrayNode clusterRow = dash.newRow(String.format("CLUSTER METRICS FOR %d broker(s)", brokers.size()), 200);
-        ObjectNode graph1 = dash.newGraph(clusterRow, "Under-Replicated Partitions", 6, false);
-        dash.newTarget(graph1, "$tag_service", "SELECT mean(\"Value\") AS \"Value\" FROM \"UnderReplicatedPartitions\" " +
-                "WHERE \"group\" = 'kafka.server' " +
-                "AND \"name\" = '" + name + "' " +
-                "AND $timeFilter GROUP BY time($interval), \"service\"");
-
-        for (Broker broker : brokers) {
-            ArrayNode brokerRow = dash.newRow(String.format("Kafka Broker ID %s @ %s", broker.id, broker.hostPort()), 250);
-            dash.newGraph(brokerRow, "Memory", 4, true);
-            dash.newGraph(brokerRow, "LogFlush", 4, true);
-            dash.newGraph(brokerRow, "Throughput", 4, true);
-        }
-        return dash;
     }
 
     public Properties generateScannerConfig(List<Broker> brokers, String name) throws IOException {
@@ -174,5 +156,98 @@ public class DiscoveryTool {
                     json.get("jmx_port").asInt()
             );
         }
+    }
+
+    public Dashboard generateDashboard(String name, List<Broker> brokers, String dataSource, String path) {
+        Dashboard dash = new Dashboard(name, dataSource, path + "/" + name + ".json");
+
+        ArrayNode clusterRow = dash.newRow(String.format("CLUSTER METRICS FOR %d broker(s)", brokers.size()), 172);
+
+        dash.newStat(clusterRow, "Controllers", 1, false, "current",
+                "SELECT sum(\"Value\") FROM \"ActiveControllerCount\" " +
+                        "WHERE \"group\" = 'kafka.controller' AND \"name\" = '" + name + "' AND $timeFilter " +
+                        "GROUP BY time(" + DEFAULT_INTERVAL + ")");
+
+        ObjectNode graph1 = dash.newGraph(clusterRow, "Under-Replicated Partitions", 2, false).put("bars", true);
+        dash.newTarget(graph1, "$tag_service", "SELECT mean(\"Value\") FROM \"UnderReplicatedPartitions\" " +
+                "WHERE \"group\" = 'kafka.server' AND \"name\" = '" + name + "' AND $timeFilter " +
+                "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"");
+
+        dash.newTable(clusterRow, "Partition Count", 2, "avg", "$tag_service",
+                "SELECT last(\"Value\") FROM \"PartitionCount\" " +
+                "WHERE \"group\" = 'kafka.server' AND \"name\" = '" + name + "' AND $timeFilter " +
+                "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"")
+            .put("transform", "timeseries_aggregations")
+            .put("showHeader", false);
+
+        //Total Maximum Log Flush Time
+        ObjectNode graph5 = dash.newGraph(clusterRow, "Log Flush Time (98th maximum)", 2, false)
+                .put("linewidth",1).put("points", false).put("fill",0);
+        graph5.replace("y_formats", dash.newArray("ms", "short"));
+        dash.get(graph5, "grid")
+                .put("threshold1", 6).put("threshold1Color", "rgba(236, 118, 21, 0.21)")
+                .put("threshold2", 12).put("threshold2Color", "rgba(234, 112, 112, 0.22)");
+        dash.newTarget(graph5, "$tag_service", "SELECT max(\"98thPercentile\") as \"98thPercentile\" " +
+                "FROM \"LogFlushRateAndTimeMs\" " +
+                "WHERE \"group\" = 'kafka.log' AND \"name\" = '" + name + "' AND $timeFilter " +
+                "GROUP BY time(1m), \"service\"");
+
+        ObjectNode graph2 = dash.newGraph(clusterRow, "Input / Sec", 1, false).put("fill", 2).put("stack", true);
+        graph2.replace("y_formats", dash.newArray("bytes", "short"));
+        dash.get(graph2, "grid").put("leftMin", 0);
+        dash.newTarget(graph2, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"BytesInPerSec\" " +
+                "WHERE \"group\" = 'kafka.server' AND \"name\" = '" + name + "' AND $timeFilter " +
+                "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"");
+
+        ObjectNode graph3 = dash.newGraph(clusterRow, "Output / Sec", 2, false).put("fill", 2).put("stack", true);
+        graph3.replace("y_formats", dash.newArray("bytes", "short"));
+        dash.get(graph3, "grid").put("leftMin", 0);
+        dash.newTarget(graph3, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"BytesOutPerSec\" " +
+                "WHERE \"group\" = 'kafka.server' AND \"name\" = '" + name + "' AND $timeFilter " +
+                "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"");
+
+        ObjectNode graph4 = dash.newGraph(clusterRow, "Network Idle Time", 2, false);
+        graph4.replace("y_formats", dash.newArray("percentunit", "short"));
+        dash.get(graph4, "grid").put("leftMin", 0);
+        dash.newTarget(graph4, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"IdlePercent\" " +
+                "WHERE \"group\" = 'kafka.network' AND \"name\" = '" + name + "' AND $timeFilter " +
+                "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"");
+
+        for (Broker broker : brokers) {
+            //TODO Memory Usage Graph
+            ArrayNode brokerRow = dash.newRow(String.format("Kafka Broker ID %s @ %s", broker.id, broker.hostPort()), 250);
+            ObjectNode graph6 = dash.newGraph(brokerRow, "Memory", 4, true);
+
+            //Log Flush Time Graph
+            ObjectNode graph7 = dash.newGraph(brokerRow, "Log Flush Time (mean)", 4, false)
+                    .put("linewidth",1).put("points", true).put("pointradius", 1).put("fill", 0);
+            graph7.replace("y_formats", dash.newArray("ms", "short"));
+            dash.get(graph7, "grid")
+                    .put("leftLogBase", 2)
+                    .put("threshold1", 100).put("threshold1Color", "rgba(236, 118, 21, 0.21)")
+                    .put("threshold2", 250).put("threshold2Color", "rgba(234, 112, 112, 0.22)");
+            dash.newTarget(graph7, "$col", "SELECT mean(\"999thPercentile\") as \"999thPercentile\" " +
+                    "FROM \"LogFlushRateAndTimeMs\" " +
+                    "WHERE \"group\" = 'kafka.log' AND \"service\" = '" +String.format("broker-%s", broker.id)+"'" +
+                    "AND \"name\" = '" + name + "' AND $timeFilter " +
+                    "GROUP BY time(30s)");
+            dash.newTarget(graph7, "$col", "SELECT mean(\"99thPercentile\") as \"99thPercentile\" " +
+                    "FROM \"LogFlushRateAndTimeMs\" " +
+                    "WHERE \"group\" = 'kafka.log' AND \"service\" = '" +String.format("broker-%s", broker.id)+"'" +
+                    "AND \"name\" = '" + name + "' AND $timeFilter " +
+                    "GROUP BY time(30s)");
+
+            dash.newTarget(graph7, "$col", "SELECT mean(\"95thPercentile\") as \"95thPercentile\" " +
+                    "FROM \"LogFlushRateAndTimeMs\" " +
+                    "WHERE \"group\" = 'kafka.log' AND \"service\" = '" +String.format("broker-%s", broker.id)+"'" +
+                    "AND \"name\" = '" + name + "' AND $timeFilter " +
+                    "GROUP BY time(30s)");
+
+            //TODO Throughput Graph
+            dash.newGraph(brokerRow, "Throughput", 4, true);
+        }
+
+        //TODO for(String topic: topics) { ... } //maybe use a variable template for either '*' or '<TOPIC>'
+        return dash;
     }
 }
