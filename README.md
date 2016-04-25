@@ -120,7 +120,7 @@ Zookeeper Client and generates Grafana dashboards into the local instance and co
 output configuration can be piped into one of the runtime modules, e.g. InfluxDBLoader or Metrics Agent.
 It is a Java Application and first has to be built with the following command:
 
-    ./gradlew :metrics-discovery:build
+    ./gradlew :discovery:build
 
 ### Example usage for local Kafka cluster and local InfluxDB
 

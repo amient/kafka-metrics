@@ -95,8 +95,7 @@ public class DiscoveryTool {
         this.dashboard = path != null && dashboard != null && brokers != null
                 ? generateDashboard(dashboard, brokers, dataSource, path) : null;
         this.topic = zkClient != null && topic != null ? topic : null;
-        this.scanners = topic == null && dashboard != null && brokers != null
-                ? generateScannerConfig(brokers, dashboard) : null;
+        this.scanners = dashboard != null && brokers != null ? generateScannerConfig(brokers, dashboard) : null;
         this.influxdb = influxdb != null ? new URL(influxdb) : null;
 
     }
