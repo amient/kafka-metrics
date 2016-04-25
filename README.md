@@ -16,6 +16,7 @@ non-intrusive inspection of existing kafka clusters and applications to global s
 	- [Multi-Enviornment Scenario](#scenario2)
 2. [Modules](#usage-instance)
  	- [Bundled Instance: InfluxDB, Grafana](#usage-instance)
+ 	- [Metrics Discovery Tool](#usage-discovery)
  	- [InfluxDB Loader](#usage-loader) 
  	- [Metrics Agent](#metrics-agent)
  	- [TopicReporter](#usage-reporter)
@@ -95,22 +96,62 @@ host but doesn't have to be used if you have existing InfluxDB component running
 
 Provided you have `npm` and `grunt` installed on, the following command should install all components:
 
-```
-./gradlew :instance:install
-```
+    ./gradlew :instance:install
 
 To launch the instance execute the following script:
   
-```
-./instance/build/bin/start-kafka-metrics-instance.sh <CONF_DIR> <LOG_DIR>
-```
+    ./instance/build/bin/start-kafka-metrics-instance.sh <CONF_DIR> <LOG_DIR>
 
-An example local config is provided unders `./instance/build/conf`. To stop the instance:
+An example local config is provided under `./instance/build/conf` which can be used as follows:
+ 
+    ./instance/build/bin/start-kafka-metrics-instance.sh $PWD/instance/build/conf $PWD/instance/.logs
 
-```
-./instance/build/bin/stop-kafka-metrics-instance.sh <CONF_DIR>
-```
+To stop the instance:
 
+    ./instance/build/bin/stop-kafka-metrics-instance.sh ./instance/build/conf
+
+<a name="usage-discovery">
+## Metrics Discovery Usage
+</a>
+
+Metrics Discovery module can be used for generating configs and dashboards for existing Kafka Clusters. It uses
+Zookeeper Client and generates Grafana dashboards into the local instance and configurations into the STDOUT. The 
+output configuration can be piped into one of the runtime modules, e.g. InfluxDBLoader or Metrics Agent.
+It is a Java Application and first has to be built with the following command:
+
+    ./gradlew :discovery:build
+
+### Example usage for local Kafka cluster and local InfluxDB
+
+    ./discovery/build/scripts/discovery \
+        --zookeeper "localhost:2181" \
+        --dashboard "local-kafka-cluster" \
+        --dashboard-path "./instance/.data/grafana/dashboards" \
+        --influxdb "http://root:root@localhost:8086" | ./influxdb-loader/build/scripts/influxdb-loader
+
+The above command discovers all the brokers that are part of the cluster and configures an influxdb-loader
+ instance using local instance of InfluxDB. It also generates a dashboard for the discovered cluster which
+ can be viewed, assuming Grafan is also running alongside InfluxDB (see Metrics Instance):
+
+    http://localhost:3000/dashboard/file/local-kafka-cluster.json
+
+### Example usage for remote Kafka cluster with Metrics Agent 
+
+On the Kafka Cluster:
+
+    ./discovery/build/scripts/discovery \
+        --zookeeper "<SEED-ZK-HOST>:<ZK-PORT>" \
+        --dashboard "remote-kafka-cluster" \
+        --topic "metrics" | ./metrics-agent/build/scripts/metrics-agent
+
+On the Kafka Metrics instance:
+ 
+    ./discovery/build/scripts/discovery \
+        --zookeeper "<SEED-ZK-HOST>:<ZK-PORT>" \
+        --topic "metrics" \
+        --dashboard "remote-kafka-cluster" \
+        --dashboard-path "./instance/.data/grafana/dashboards" \
+        --influxdb "http://root:root@localhost:8086" | ./influxdb-loader/build/scripts/influxdb-loader
 
 <a name="usage-loader">
 ## InfluxDB Loader Usage
@@ -121,9 +162,7 @@ to scan the measurements from any number of JMX ports oand Kafka metrics topics.
 In versions 0.9.+, the topic input functionality is replaced by the Metrics Connect module which utilizes Kafka Connect 
 framework. To build an executable jar, run the following command:
 
-```
-./gradlew :influxdb-loader:build
-```
+    ./gradlew :influxdb-loader:build
 
 Once built, the instance can be launched with `./influxdb-loader/build/scripts/influxdb-loader` by passing it 
 path to properties file containing the following configuration:
@@ -135,9 +174,7 @@ There is a few example config files under `influxdb-loader/conf` which explain h
 If you have a Kafka Broker running locally which has a JMX Server listening on port 19092 and a bundled instance of 
 InfluxDB and Grafana running locally, you can use the following script and config file to collect the broker metrics:
 
-```
-./influxdb-loader/build/scripts/influxdb-loader influxdb-loader/conf/local-jmx.properties
-```
+    ./influxdb-loader/build/scripts/influxdb-loader influxdb-loader/conf/local-jmx.properties
 
 <a name="metrics-agent">
 ## Metrics Agent Usage
@@ -148,17 +185,13 @@ these into the kafka metrics topic. The JMX scanners can be configured in the sa
  the InfluxDB backend connection is replaced with kafka metrics producer which publishes the measurements into a kafka
  topic. It is also a Java application and the executable jar can be built with the following command:  
 
-```
-./gradlew :metrics-agent:build
-```
+    ./gradlew :metrics-agent:build
 
 To run the agent instance, a configuration file is required, which should contain the following sections:
      - [JMX Scanner Configuration](#configuration-scanner)
      - [Metrics Producer Configuration](#configuration-producer)
 
-```
-./metrics-agent/build/scripts/kafka-metrics-agent <CONFIG-PROPERTIES-FILE>
-```
+    ./metrics-agent/build/scripts/kafka-metrics-agent <CONFIG-PROPERTIES-FILE>
 
 <a name="usage-reporter">
 ## Topic Reporter Usage
@@ -174,10 +207,8 @@ maturity of various kafka components, watch out for subtle differences when addi
 use the reporter as plug-in for kafka brokers and tools you need to put the packaged jar in their classpath, which in 
 kafka broker means putting it in the kafka /libs directory:
 
-```
-./gradlew install
-cp stream-reporter/lib/stream-reporter-*.jar $KAFKA_HOME/libs/
-```
+    ./gradlew install
+    cp stream-reporter/lib/stream-reporter-*.jar $KAFKA_HOME/libs/
 
 The reporter only requires one set of configuration properties:
     - [Metrics Producer Configuration](#configuration-producer)
@@ -190,19 +221,15 @@ The reporter only requires one set of configuration properties:
 
 add following properties to the configuration for the component  
 
-```
-kafka.metrics.reporters=io.amient.kafka.metrics.TopicReporter
-kafka.metrics.<CONFIGURATION-OPTIONS>...
-```
+    kafka.metrics.reporters=io.amient.kafka.metrics.TopicReporter
+    kafka.metrics.<CONFIGURATION-OPTIONS>...
 
 <a name="usage-reporter-kafka-new">
 ###  Usage in Kafka NEW Producer (0.8.2+) and Consumer (0.9+) 
 </a>
 
-```
-metric.reporters=io.amient.kafka.metrics.TopicReporter
-kafka.metrics.<CONFIGURATION-OPTIONS>...
-```
+    metric.reporters=io.amient.kafka.metrics.TopicReporter
+    kafka.metrics.<CONFIGURATION-OPTIONS>...
 
 <a name="usage-reporter-dropwizard">
 ### Usage in any application using dropwizard metrics (formerly yammer metrics)
@@ -223,25 +250,21 @@ will produce kafka-metrics messages to a configured topic every given time inter
 
 ... Using builder for programmatic initialization
 
-``` 
-val registry = MetricsRegistry.defaultRegistry()
-val reporter = TopicReporter.forRegistry(registry)
-    .setTopic("metrics") //this is also default
-    .setBootstrapServers("kafka1:9092,kafka2:9092")
-    .setTag("host", "my-host-xyz")
-    .setTag("app", "my-app-name")
-    .build()
-reporter.start(10, TimeUnit.SECONDS);
-```
+    val registry = MetricsRegistry.defaultRegistry()
+    val reporter = TopicReporter.forRegistry(registry)
+        .setTopic("metrics") //this is also default
+        .setBootstrapServers("kafka1:9092,kafka2:9092")
+        .setTag("host", "my-host-xyz")
+        .setTag("app", "my-app-name")
+        .build()
+    reporter.start(10, TimeUnit.SECONDS);
 
 ... OR Using config properties:
  
-```
-val registry = MetricsRegistry.defaultRegistry()
-val config = new java.util.Properties(<CONFIGURATION-OPTIONS>)
-val reporter = TopicReporter.forRegistry(registry).configure(config).build()
-reporter.start(10, TimeUnit.SECONDS);
-```
+    val registry = MetricsRegistry.defaultRegistry()
+    val config = new java.util.Properties(<CONFIGURATION-OPTIONS>)
+    val reporter = TopicReporter.forRegistry(registry).configure(config).build()
+    reporter.start(10, TimeUnit.SECONDS);
 
 <a name="usage-samza">
 ##  Usage in Samza (0.9+) 
@@ -250,18 +273,14 @@ reporter.start(10, TimeUnit.SECONDS);
 The InfluxDB Loader and Metrics Connect use the same code which understands json messages that Samza generates 
 using MetricsSnapshotSerdeFactory. So just a normal samza metrics configuration without additional code, for example: 
 
-```
-metrics.reporters=topic
-metrics.reporter.topic.class=org.apache.samza.metrics.reporter.MetricsSnapshotReporterFactory
-metrics.reporter.topic.stream=kafkametrics.metrics
-serializers.registry.metrics.class=org.apache.samza.serializers.MetricsSnapshotSerdeFactory
-systems.kafkametrics.streams.metrics.samza.msg.serde=metrics
-systems.kafkametrics.samza.factory=org.apache.samza.system.kafka.KafkaSystemFactory
-systems.kafkametrics.consumer.zookeeper.connect=<...>
-systems.kafkametrics.producer.bootstrap.servers=<...>
-
-```
-
+    metrics.reporters=topic
+    metrics.reporter.topic.class=org.apache.samza.metrics.reporter.MetricsSnapshotReporterFactory
+    metrics.reporter.topic.stream=kafkametrics.metrics
+    serializers.registry.metrics.class=org.apache.samza.serializers.MetricsSnapshotSerdeFactory
+    systems.kafkametrics.streams.metrics.samza.msg.serde=metrics
+    systems.kafkametrics.samza.factory=org.apache.samza.system.kafka.KafkaSystemFactory
+    systems.kafkametrics.consumer.zookeeper.connect=<...>
+    systems.kafkametrics.producer.bootstrap.servers=<...>
 
 <a name="configuration">
 ## Configuration
@@ -333,9 +352,7 @@ consumer....                               | -                      | Any other 
 
 Using kafka console consumer with a formatter for kafka-metrics:
 
-```
-./bin/kafka-console-consumer.sh --zookeeper localhost --topic metrics --formatter io.amient.kafka.metrics.MeasurementFormatter
-```
+    ./bin/kafka-console-consumer.sh --zookeeper localhost --topic metrics --formatter io.amient.kafka.metrics.MeasurementFormatter
 
 <a name="development">
 ## Development
