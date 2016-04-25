@@ -42,8 +42,9 @@ public class InfluxDbLoaderMain {
             try {
                 MeasurementPublisher publisher = new InfluxDbPublisher(props);
                 JMXScanner jmxScannerInstance = new JMXScanner(props, publisher);
-                ConsumerMetrics consumer = new ConsumerMetrics(props);
-                while (!jmxScannerInstance.isTerminated() || !consumer.isTerminated()) {
+                ConsumerMetrics consumer = props.containsKey(ConsumerMetrics.COFNIG_CONSUMER_TOPIC)
+                        ? new ConsumerMetrics(props) : null;
+                while (!jmxScannerInstance.isTerminated() || (consumer != null && !consumer.isTerminated())) {
                     Thread.sleep(5000);
                 }
             } catch (Throwable e) {
