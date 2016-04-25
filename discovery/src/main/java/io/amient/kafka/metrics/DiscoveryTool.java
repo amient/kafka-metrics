@@ -4,76 +4,78 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 
 public class DiscoveryTool {
 
-    public static void printHelp() {
-        System.out.println("Usage: ");
-        System.out.println("./metrics-discovery/build/scripts/metrics-discovery <OPTIONS> | <MODULE>");
-        System.out.println("--zookeeper      -z <HOST:PORT>      Address of the zookeeper for the kafka cluster");
-        System.out.println("--dashboard      -d <NAME>           Grafana dashboard name to be used");
-        System.out.println("--dashboard-path -p <PATH>           Grafana location, i.e. `./instance/.data/grafana/dashboards`");
-        System.out.println("--influxdb       -i <URL>            InfluxDB connect URL (including user and password)");
-        System.out.println("--topic          -t <TOPIC-NAME>     Name of the metrics topic to consume measurements from");
+    public static void main(String[] args) throws IOException {
+
+        OptionParser parser = new OptionParser();
+
+        parser.accepts("help", "Print usage help");
+        OptionSpec<String> zookeeper = parser.accepts("zookeeper", "Address of the seed zookeeper server").withRequiredArg().required();
+        OptionSpec<String> dashboard = parser.accepts("dashboard", "Grafana dashboard name to be used in all generated configs").withRequiredArg().required();
+        OptionSpec<String> dashboardPath = parser.accepts("dashboard-path", "Grafana location, i.e. `./instance/.data/grafana/dashboards`").withRequiredArg();
+        OptionSpec<String> topic = parser.accepts("topic", "Name of the metrics topic to consume measurements from").withRequiredArg();
+        OptionSpec<String> influxdb = parser.accepts("influxdb", "InfluxDB connect URL (including user and password)").withRequiredArg();
         //TODO --producer-bootstrap for truly non-intrusive agent deployment
         //TODO --influxdb-database
-        System.out.println("                                (If not provided - jmx scanners will be configured instead)");
-        System.out.println("--help           -h                  Print help");
-        System.exit(1);
-    }
 
-    public static void main(String[] args) {
-        String zookeeper = null;
-        String influxdb = null;
-        String topic = null;
-        String dashboard = null;
-        String dashboardPath = null;
-        Iterator<String> it = Arrays.asList(args).iterator();
-        while (it.hasNext()) {
-            switch (it.next()) {
-                case "--help":
-                case "-h":
-                    printHelp();
-                    break;
-                case "--zookeeper":
-                case "-z": zookeeper = it.next();
-                    break;
-                case "--topic":
-                case "-t": topic = it.next();
-                    break;
-                case "--dashboard":
-                case "-d": dashboard = it.next();
-                    break;
-                case "--dashboard-path":
-                case "-p": dashboardPath = it.next();
-                    break;
-                case "--influxdb":
-                case "-i": influxdb = it.next();
-                    break;
-            }
+        if (args.length == 0 || args[0] == "-h" || args[0] == "--help") {
+            parser.printHelpOn(System.err);
+            System.exit(0);
         }
+
+        OptionSet opts = parser.parse(args);
+
         try {
-            DiscoveryTool tool = new DiscoveryTool(
-                    zookeeper,
-                    topic,
-                    influxdb,
-                    dashboard,
-                    "Local InfluxDB", //TODO configure this
-                    dashboardPath);
+
+            DiscoveryTool tool = new DiscoveryTool();
+
             try {
-                tool.discoverAndOutputConfiguration();
+                List<Broker> brokers = tool.discoverKafkaCluster(opts.valueOf(zookeeper));
+
+                if (opts.has(dashboard) && opts.has(dashboardPath)) {
+                    tool.generateDashboard(opts.valueOf(dashboard), brokers, "Local InfluxDB", opts.valueOf(dashboardPath))
+                        .save();
+                }
+
+                if (opts.has(topic)) {
+                    System.out.println("kafka.metrics.topic=" + opts.valueOf(topic));
+                    System.out.println("kafka.metrics.polling.interval=5s");
+                    System.out.println("kafka.metrics.bootstrap.servers=" + brokers.get(0).hostPort());
+                }
+
+                if (!opts.has(influxdb) || !opts.has(topic)) {
+                    tool.generateScannerConfig(brokers, opts.valueOf(dashboard)).list(System.out);
+                }
+
+                if (opts.has(influxdb)) {
+                    URL url = new URL(opts.valueOf(influxdb));
+                    System.out.println("influxdb.database=metrics"); //TODO configure this
+                    System.out.println("influxdb.url=" + influxdb.toString());
+                    if (url.getUserInfo() != null) {
+                        System.out.println("influxdb.username=" + url.getUserInfo().split(":")[0]);
+                        if (url.getUserInfo().contains(":")) {
+                            System.out.println("influxdb.password=" + url.getUserInfo().split(":")[1]);
+                        }
+                    }
+                }
+
+                System.out.flush();
             } catch (IOException e) {
                 e.printStackTrace();
                 System.exit(3);
-            } finally {
-                tool.close();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -82,55 +84,12 @@ public class DiscoveryTool {
 
     }
 
-    private final BrokerInfoClient zkClient;
-    private final Dashboard dashboard;
-    private final String topic;
-    private final URL influxdb;
-    private final Properties scanners;
-
-    public DiscoveryTool(String zkConnect, String topic, String influxdb,
-                         String dashboard, String dataSource, String path) throws IOException {
-        this.zkClient = (zkConnect != null) ? new BrokerInfoClient(zkConnect) : null;
-        List<Broker> brokers = zkClient != null ? zkClient.getBrokers() : null;
-        this.dashboard = path != null && dashboard != null && brokers != null
-                ? generateDashboard(dashboard, brokers, dataSource, path) : null;
-        this.topic = zkClient != null && topic != null ? topic : null;
-        this.scanners = dashboard != null && brokers != null ? generateScannerConfig(brokers, dashboard) : null;
-        this.influxdb = influxdb != null ? new URL(influxdb) : null;
-
+    public List<Broker> discoverKafkaCluster(String zkConnect) throws IOException {
+        try (BrokerInfoClient client = new BrokerInfoClient(zkConnect)) {
+            return client.getBrokers();
+        }
     }
 
-
-    private void discoverAndOutputConfiguration() throws IOException {
-
-        if (dashboard != null) {
-            dashboard.save();
-        }
-
-        if (topic != null) {
-            System.out.println("kafka.metrics.topic=" + topic);
-            System.out.println("kafka.metrics.polling.interval=5s");
-            System.out.println("kafka.metrics.bootstrap.servers=" + zkClient.getFirstBroker().hostPort());
-        }
-
-        if (scanners != null && (influxdb == null || topic == null)) {
-            scanners.list(System.out);
-        }
-
-        if (influxdb != null) {
-            System.out.println("influxdb.database=metrics"); //TODO configure this
-            System.out.println("influxdb.url=" + influxdb.toString());
-            if (influxdb.getUserInfo() != null) {
-                System.out.println("influxdb.username=" + influxdb.getUserInfo().split(":")[0]);
-                if (influxdb.getUserInfo().contains(":")) {
-                    System.out.println("influxdb.password=" + influxdb.getUserInfo().split(":")[1]);
-                }
-            }
-        }
-
-        System.out.flush();
-
-    }
 
     public Dashboard generateDashboard(String name, List<Broker> brokers, String dataSource, String path) {
         Dashboard dash = new Dashboard(name, dataSource, path + "/" + name + ".json");
@@ -154,7 +113,6 @@ public class DiscoveryTool {
     public Properties generateScannerConfig(List<Broker> brokers, String name) throws IOException {
         Properties scannerProps = new Properties();
         for (Broker broker : brokers) {
-            //jmx scanner for broker
             Integer section = Integer.parseInt(broker.id) + 1;
             scannerProps.put(String.format("jmx.%d.address", section), String.format("%s:%d", broker.host, broker.jmxPort));
             scannerProps.put(String.format("jmx.%d.query.scope", section), "kafka.*:*");
@@ -166,11 +124,7 @@ public class DiscoveryTool {
         return scannerProps;
     }
 
-    private void close() {
-        zkClient.close();
-    }
-
-    private class BrokerInfoClient extends ZkClient {
+    private class BrokerInfoClient extends ZkClient implements Closeable {
         private final String brokersZkPath = "/brokers/ids";
 
         public BrokerInfoClient(String serverstring) {
