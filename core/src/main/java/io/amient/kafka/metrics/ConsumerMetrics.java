@@ -103,9 +103,6 @@ public class ConsumerMetrics {
                             for (MeasurementV1 measurement : m.message()) {
                                 try {
                                     publisher.publish(measurement);
-//                                    if (measurement.getName().equals("MessagesInPerSec")) {
-//                                        formatter.writeTo(measurement, System.out);
-//                                    }
                                 } catch (RuntimeException e) {
 
                                     log.error("Unable to publish measurement " + formatter.toString(measurement)
