@@ -16,7 +16,7 @@ non-intrusive inspection of existing kafka clusters and applications to global s
 	- [Multi-Enviornment Scenario](#scenario2)
 2. [Modules](#usage-instance)
  	- [Bundled Instance: InfluxDB, Grafana](#usage-instance)
- 	- [Metrics Discovery Tool](#usage-discovery)
+ 	- [Cluster Discovery Tool](#usage-discovery)
  	- [InfluxDB Loader](#usage-loader) 
     - [Metrics Connect](#usage-connect)
  	- [Metrics Agent](#metrics-agent)
@@ -112,13 +112,13 @@ To stop the instance:
     ./instance/build/bin/stop-kafka-metrics-instance.sh ./instance/build/conf
 
 <a name="usage-discovery">
-## Metrics Discovery Usage
+## Cluster Discovery Tool
 </a>
 
-Metrics Discovery module can be used for generating configs and dashboards for existing Kafka Clusters. It uses
-Zookeeper Client and generates Grafana dashboards into the local instance and configurations into the STDOUT. The 
-output configuration can be piped into one of the runtime modules, e.g. InfluxDBLoader or Metrics Agent.
-It is a Java Application and first has to be built with the following command:
+Metrics Discovery tool can be used for generating configs and dashboards for existing Kafka Clusters. It uses
+Zookeeper Client and generates Grafana dashboards as json files and configurations for other Kafka Metrics modules
+into the STDOUT. The output configuration can be piped into one of the runtime modules, e.g. InfluxDBLoader 
+or Metrics Agent. It is a Java Application and first has to be built with the following command:
 
     ./gradlew :discovery:build
 

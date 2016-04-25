@@ -5,6 +5,7 @@ mainClassName = 'io.amient.kafka.metrics.DiscoveryTool'
 dependencies {
     compile group: 'com.101tec', name: 'zkclient', version:'0.5'
     compile group: 'com.fasterxml.jackson.core', name:'jackson-databind', version: '2.7.3'
+    compile group: 'net.sf.jopt-simple', name: 'jopt-simple', version: '5.0.1'
 }
 
 jar {
