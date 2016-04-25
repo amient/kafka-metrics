@@ -38,6 +38,7 @@ public class ProducerPublisher implements MeasurementPublisher {
     public static final String CONFIG_METRICS_TOPIC = "kafka.metrics.topic";
 
     private static final int DEFAULT_BACK_OFF_MS = 10000;
+    static final String DEFAULT_CLIENT_ID = "kafka-metrics";
 
     private final KafkaProducer producer;
     private final String topic;
@@ -62,6 +63,7 @@ public class ProducerPublisher implements MeasurementPublisher {
             put("linger.ms", "1000");
             put("key.serializer", IntegerSerializer.class);
             put("value.serializer", io.amient.kafka.metrics.MeasurementSerializer.class);
+            put("client.id", DEFAULT_CLIENT_ID);
         }});
     }
 

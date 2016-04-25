@@ -37,18 +37,25 @@ public class ConsumerMetrics {
 
     static private final Logger log = LoggerFactory.getLogger(ConsumerMetrics.class);
 
+    static private final String CONFIG_PREFIX = "consumer.";
+    static final String COFNIG_CONSUMER_TOPIC = CONFIG_PREFIX + "topic";
+    static final String COFNIG_CONSUMER_THREADS = CONFIG_PREFIX + "numThreads";
+
+    static final String DEFAULT_CLIENT_ID = "kafka-metrics";
+
     private final ExecutorService executor;
 
     public ConsumerMetrics(Properties props) {
-        String topic = props.getProperty("consumer.topic", "metrics");
-        Integer numThreads = Integer.parseInt(props.getProperty("consumer.numThreads", "1"));
+        String topic = props.getProperty(COFNIG_CONSUMER_TOPIC, "metrics");
+        Integer numThreads = Integer.parseInt(props.getProperty(COFNIG_CONSUMER_THREADS, "1"));
         executor = Executors.newFixedThreadPool(numThreads);
 
         Properties consumerProps = new Properties();
+        consumerProps.put("client.id", DEFAULT_CLIENT_ID);
         for (Enumeration<Object> e = props.keys(); e.hasMoreElements(); ) {
             String propKey = (String) e.nextElement();
             String propVal = props.get(propKey).toString();
-            if (propKey.startsWith("consumer.")) {
+            if (propKey.startsWith(CONFIG_PREFIX)) {
                 propKey = propKey.substring(9);
                 consumerProps.put(propKey, propVal);
                 log.info(propKey + "=" + propVal);
