@@ -106,7 +106,7 @@ public class JMXScannerTask implements Runnable {
                 }
                 MeasurementV1[] measurements = extractMeasurements(i, timestamp);
                 for (MeasurementV1 measurement : measurements) {
-                    if (measurement.getFields().size() > 0) {
+                    if (publisher != null && measurement.getFields().size() > 0) {
                         publisher.publish(measurement);
                     }
                 }
@@ -140,11 +140,21 @@ public class JMXScannerTask implements Runnable {
         MBeanInfo info = conn.getMBeanInfo(name);
         for (MBeanAttributeInfo attr : info.getAttributes()) {
             try {
-                Double value = formatter.anyValueToDouble(conn.getAttribute(name, attr.getName()));
-                if (value != null)
-                    fields.put(attr.getName(), value);
+                Object anyVal = conn.getAttribute(name, attr.getName());
+                try {
+                    Double value = formatter.anyValueToDouble(anyVal);
+                    if (value != null)
+                        fields.put(attr.getName(), value);
+                } catch (RuntimeMBeanException e) {
+                    log.warn("could not cast value " + anyVal + " of attribute " + attr + " of " + name +" into double value ", e);
+                }
             } catch (RuntimeMBeanException e) {
-                log.warn("could not cast " + name +" into double value ", e);
+                String msg = "failed to get attribute name=" + attr.getName() + " type=" + attr.getType() + " of " + name;
+                if (log.isDebugEnabled()) {
+                    log.debug(msg, e.getCause());
+                } else {
+                    log.warn(msg + " due to " + e.getCause());
+                }
             }
         }
 
