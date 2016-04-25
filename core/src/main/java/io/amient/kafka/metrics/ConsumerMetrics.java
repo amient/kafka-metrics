@@ -62,8 +62,8 @@ public class ConsumerMetrics {
             }
         }
 
-        if (consumerProps.size() == 0) {
-            log.info("ConsumerMetrics disabled: " + executor.isTerminated());
+        if (consumerProps.size() <= 1) {
+            log.info("ConsumerMetrics disabled");
             return;
         }
 
