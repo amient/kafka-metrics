@@ -152,7 +152,8 @@ public class JMXScannerTask implements Runnable {
                 String msg = "failed to get attribute name=" + attr.getName() + " type=" + attr.getType() + " of " + name;
                 if (log.isDebugEnabled()) {
                     log.debug(msg, e.getCause());
-                } else {
+                } else if (!(e.getCause() instanceof java.util.NoSuchElementException)) {
+                    //kafka 0.8.x throws NoSuchElementException for LogOffset related MBeans for empty partitions
                     log.warn(msg + " due to " + e.getCause());
                 }
             }
