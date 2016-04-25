@@ -51,9 +51,14 @@ public class DiscoveryTool {
                 }
 
                 if (opts.has(topic)) {
+                    //producer/reporter settings
                     System.out.println("kafka.metrics.topic=" + opts.valueOf(topic));
                     System.out.println("kafka.metrics.polling.interval=5s");
                     System.out.println("kafka.metrics.bootstrap.servers=" + brokers.get(0).hostPort());
+                    //consumer settings
+                    System.out.println("consumer.topic=" + opts.valueOf(topic));
+                    System.out.println("consumer.zookeeper.connect=" + opts.valueOf(zookeeper));
+                    System.out.println("consumer.group.id=kafka-metrics-"+ opts.valueOf(dashboard));
                 }
 
                 if (!opts.has(influxdb) || !opts.has(topic)) {
@@ -63,7 +68,7 @@ public class DiscoveryTool {
                 if (opts.has(influxdb)) {
                     URL url = new URL(opts.valueOf(influxdb));
                     System.out.println("influxdb.database=metrics"); //TODO configure this
-                    System.out.println("influxdb.url=" + influxdb.toString());
+                    System.out.println("influxdb.url=" + url.toString());
                     if (url.getUserInfo() != null) {
                         System.out.println("influxdb.username=" + url.getUserInfo().split(":")[0]);
                         if (url.getUserInfo().contains(":")) {

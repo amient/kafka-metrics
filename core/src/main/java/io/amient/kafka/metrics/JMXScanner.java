@@ -42,6 +42,7 @@ public class JMXScanner {
 
     public JMXScanner(Properties props, MeasurementPublisher publisher)
             throws IOException, MalformedObjectNameException, InterruptedException {
+        if (publisher == null) log.warn("ProducerPublisher not configured, will only scan..");
         Map<String, JMXScannerConfig> jmxConfigs = new HashMap<String, JMXScannerConfig>();
         for (Enumeration<Object> e = props.keys(); e.hasMoreElements(); ) {
             String propKey = (String) e.nextElement();

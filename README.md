@@ -518,6 +518,7 @@ Using kafka console consumer with a formatter for kafka-metrics:
 ## Development
 </a>
 
+- TODO: implement missing shutdown hooks wherever consumer/producer api is used
 - TODO: configurable log4j.properties file location and environment var overrides for configs
 - TODO: expose all configs for kafka producer (NEW) configuration properties
 - TODO: more robust connection error handling, e.g. when one of the cluster is not reachable, warn once and try reconnecting quietly
@@ -525,8 +526,6 @@ Using kafka console consumer with a formatter for kafka-metrics:
 - DESIGN: explore influxdb retention options 
 - DESIGN: add Kapacitor (also written in Go) to the default metrics instance
 - DESIGN: REST Metrics Agent - ideally re-using Kafka REST API but only if Schema Registry is optional - for non-jvm apps
-- DESIGN: should `metrics` topic represent only per cluster metric stream, NEVER aggregate, and have aggregate have `metrics_aggregated` or something ?
-   - this requires the prism feature for topic name prefix/suffix 
 - DESIGN: consider writing the influxdb-loader as golang kafka consumer which would lead to a kafka-metrics instance
     - Go 1.4
     - MetricsInfluxDbPublisher (Go)
