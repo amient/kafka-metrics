@@ -25,15 +25,20 @@ import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 
-public class KafkaMetricsMain {
-    private static Logger log = LoggerFactory.getLogger(KafkaMetricsMain.class);
+public class InfluxDbLoaderMain {
+    private static Logger log = LoggerFactory.getLogger(InfluxDbLoaderMain.class);
 
     public static void main(String[] args) {
-        String propertiesFilename = args[0];
-        java.util.Properties props = new java.util.Properties();
         try {
-            props.load(new FileInputStream(propertiesFilename));
-
+            java.util.Properties props = new java.util.Properties();
+            if (args.length == 0) {
+                props.load(System.in);
+                log.info("Configuring InfluxDBLoader from STDIN");
+            } else {
+                log.info("Configuring InfluxDBLoader from property file: " + args[0]);
+                props.load(new FileInputStream(args[0]));
+            }
+            props.list(System.out);
             try {
                 MeasurementPublisher publisher = new InfluxDbPublisher(props);
                 JMXScanner jmxScannerInstance = new JMXScanner(props, publisher);
@@ -46,7 +51,7 @@ public class KafkaMetricsMain {
             }
 
         } catch (IOException e) {
-            log.error("Could not load " + propertiesFilename, e);
+            e.printStackTrace();
             System.exit(1);
         }
     }

@@ -106,11 +106,8 @@ public class JMXScannerTask implements Runnable {
                 }
                 MeasurementV1[] measurements = extractMeasurements(i, timestamp);
                 for (MeasurementV1 measurement : measurements) {
-                    if (measurement.getFields().size() == 0) {
-                        formatter.writeTo(measurement, System.err);
-                    } else {
+                    if (measurement.getFields().size() > 0) {
                         publisher.publish(measurement);
-                        //formatter.writeTo(measurement, System.out);
                     }
                 }
 

@@ -32,11 +32,16 @@ public class KafkaMetricsAgent {
     private static Logger log = LoggerFactory.getLogger(KafkaMetricsAgent.class);
 
     public static void main(String[] args) {
-        String propertiesFilename = args[0];
-        Properties props = new Properties();
         try {
-            props.load(new FileInputStream(propertiesFilename));
-
+            java.util.Properties props = new java.util.Properties();
+            if (args.length == 0) {
+                props.load(System.in);
+                log.info("Configuring KafkaMetricsAgent from STDIN");
+            } else {
+                log.info("Configuring KafkaMetricsAgent from property file: " + args[0]);
+                props.load(new FileInputStream(args[0]));
+            }
+            props.list(System.out);
             try {
                 MeasurementPublisher publisher = new ProducerPublisher(props);
                 JMXScanner scanner = new JMXScanner(props, publisher);
@@ -48,7 +53,7 @@ public class KafkaMetricsAgent {
             }
 
         } catch (IOException e) {
-            log.error("Could not load " + propertiesFilename, e);
+            e.printStackTrace();
             System.exit(1);
         }
     }

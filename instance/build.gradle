@@ -4,11 +4,11 @@ task install(type: Exec, dependsOn: ["copyScripts"]) {
     executable "$buildDir/scripts/install-kafka-metrics-instance.sh"
 }
 
-task copyScripts(type: Copy) {
+task copyScripts(type: Copy, overwrite: true) {
     from new File("$projectDir/src")
     into new File("$buildDir/scripts")
     filter(ReplaceTokens, tokens: [BASE_DIR: project.projectDir.toString()])
-    include('**/*.sh')
+    include('*.sh')
     fileMode 0777
 }
 
