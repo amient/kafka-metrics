@@ -192,7 +192,7 @@ public class DiscoveryTool {
                 "WHERE \"group\" = 'kafka.log' AND \"name\" = '" + name + "' AND $timeFilter " +
                 "GROUP BY time(1m), \"service\"");
 
-        ObjectNode graph2 = dash.newGraph(clusterRow, "Input / Sec", 1, false).put("fill", 2).put("stack", true);
+        ObjectNode graph2 = dash.newGraph(clusterRow, "Input / Sec", 2, false).put("fill", 2).put("stack", true);
         graph2.replace("y_formats", dash.newArray("bytes", "short"));
         dash.get(graph2, "grid").put("leftMin", 0);
         dash.newTarget(graph2, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"BytesInPerSec\" " +
@@ -206,7 +206,7 @@ public class DiscoveryTool {
                 "WHERE \"group\" = 'kafka.server' AND \"name\" = '" + name + "' AND $timeFilter " +
                 "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"");
 
-        ObjectNode graph4 = dash.newGraph(clusterRow, "Network Idle Time", 2, false);
+        ObjectNode graph4 = dash.newGraph(clusterRow, "Network Idle Time", 1, false);
         graph4.replace("y_formats", dash.newArray("percentunit", "short"));
         dash.get(graph4, "grid").put("leftMin", 0);
         dash.newTarget(graph4, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"IdlePercent\" " +

@@ -95,7 +95,9 @@ This module is just a set of installer and launcher scripts that manage local in
 This module can be used with all the scenarios whether for testing on development machine or deployed on a production 
 host but doesn't have to be used if you have existing InfluxDB component running. 
 
-Provided you have `npm` and `grunt` installed on, the following command should install all components:
+Bundled instance requires the following setup: `golang 1.4+`, `npm 2.5.0+` > `node 0.12.0+` > `grunt (v0.4.5)`
+
+Provided you have `npm` and `grunt` of the minimum versions above, the following command should install all components:
 
     ./gradlew :instance:install
 
@@ -404,18 +406,52 @@ Using kafka console consumer with a formatter for kafka-metrics:
 ## Development
 </a>
 
-- TODO: implement missing shutdown hooks wherever consumer/producer api is used
-- TODO: configurable log4j.properties file location and environment var overrides for configs
-- TODO: expose all configs for kafka producer (NEW) configuration properties
-- TODO: more robust connection error handling, e.g. when one of the cluster is not reachable, warn once and try reconnecting quietly
-- TODO: sphinx documentation using generated versions in the examples
-- DESIGN: explore influxdb retention options 
-- DESIGN: add Kapacitor (also written in Go) to the default metrics instance
-- DESIGN: REST Metrics Agent - ideally re-using Kafka REST API but only if Schema Registry is optional - for non-jvm apps
-- DESIGN: consider writing the influxdb-loader as golang kafka consumer which would lead to a kafka-metrics instance
-    - Go 1.4
-    - MetricsInfluxDbPublisher (Go)
-    - InfluxDB 0.9 (Go)
-    - Grafana 2.4 (Go) > npm (v2.5.0) > node (v0.12.0) > grunt (v0.4.5) 
+### Issue tracking
+
+https://github.com/amient/kafka-metrics/issues
+
+### Versioning
+
+**Kafka Metrics is closely related to Apache Kafka** and from this perspective it can be viewed as having 2 dimensions:
+
+- *general functionality* - concepts that are available regardless of Kafka version 
+- *version-specific functionality* - implementation details that are specific/missing/added in concrete Kafka version
+
+We need this to be able to support variety of real-world setups which may use different Apache Kafka versions in their
+infrastructure. For this reason, **we maintain active branches for each version of Apache Kafka project** starting 
+from version 0.8.2.1. 
+
+When considering a new general feature, like for example having a first-class 
+[collectd integration](https://github.com/amient/kafka-metrics/issues/4), it should be considered how this will work in 
+different versions and then design the API appropriately such that it can be easily merged and ported in each active
+branch.
+
+Once designed, the general features should be implemented against the `master` branch which is linked to 
+the latest official release of Apache Kafka and once this is fully working a pull request against the master can be made.
+As part of merging the pull request, the feature must be back-ported to all supported versions.
+
+In case of using a new features of Apache Kafka which are not available in the previous versions actively supported
+ by this project, an attempt should be made to design the desired *general functionality* in such way that the older
+ version can merge and emulate the missing feature internally. Good example for this is using Kafka Connect features
+ in place of InfluxDB Loader that consumes measurement messages from Kafka topic and writes them to InfluxDb. 
+ The *general feature* here is to be able to publish measurements into InfluxDB from a Kafka topic. In 0.8.x versions 
+ we can use a custom Kafka Consumer (implemented in the core module as MetricsConsumer class) but in 0.9.x+ releases
+  we can use a Connector implementation that can be used in a Kafka Connect context. There is a re-design ticket which 
+  addresses the point of having the internal API flexible enough to allow for these 2 different ways of implementing it:
+  [issues/12](https://github.com/amient/kafka-metrics/issues/12)
+
+**Additional layer of complexity is different versions of InfluxDB.** To keep things simple we are not attempting to 
+support multiple versions of InfluxDB protocol and use the latest available. It is possible to support different 
+time-series backends but in the world of monitoring there are already a plenty of ways to integrate with InfluxDB so 
+for now we keep this option closed unless this becomes an actual pain that cannot be solved otherwise.
+
+### Contributing
+
+If you'd like to contribute, please open an issue to start a discussion about the idea or enter discussion of an 
+existing one and we'll take it from there.   
+
+
+  
+
 
 
