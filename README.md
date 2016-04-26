@@ -1,10 +1,8 @@
 # Kafka Metrics
 
-This is a system whose purpose is to aggregate metrics from a topology of Kafka Brokers, Connectors, Mirrors, Stream 
-Topologies and other Producer and Consumer applications. It uses InfluxDB as the time series back-end which can then 
-be used for example with Grafana front-end or other visualisation and alerting tools. It contains several modules
-which can be used in different configurations together or separately serving a range of use cases from simple 
-non-intrusive inspection of existing kafka clusters and applications to global scale purpose-built monitoring solutions.
+This is a system for real-time aggregation of metrics from large distributed systems. Rather than replacing existing 
+monitoring solutions it fulfills the role of `real-time distributed aggregation` element to combine metrics from 
+multiple systems, with some out-of-the-box features for data streams pipelines based on Apache Kafka.
 
 ### Contents
 
@@ -36,6 +34,17 @@ non-intrusive inspection of existing kafka clusters and applications to global s
 <a name="overview">
 ## Overview
 </a>
+
+Kafka Metrics is a set of libraries and runtime modules that can be deployed in various configurations and can be used 
+as an **A)** out-of-the-box monitoring for data streams infrastructures built with Apache Kafka including automatic discovery
+ and configuration for existing Kafka clusters **B)** a framework for monitoring distributed systems in general using Apache Kafka infrastructure as a transport layer.
+
+The aim of the design is to have small composable modules that can be deployed by configuration to cover use cases ranging 
+from quick, non-intrusive inspection of existing Kafka clusters and stream pipelines, to massive-scale purpose-built 
+monitoring, detection and alerting infrastructure for distributed systems in general.
+
+It uses InfluxDB as the time series back-end and comes with, but is not limited to Grafana front-end and Kapactior
+alerting on top of that.
 
 ![overview](doc/metrics.png)
 
