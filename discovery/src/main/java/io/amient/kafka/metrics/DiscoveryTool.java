@@ -1,3 +1,22 @@
+/*
+ * Copyright 2015 Michal Harish, michal.harish@gmail.com
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.amient.kafka.metrics;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -48,7 +67,7 @@ public class DiscoveryTool {
                 List<Broker> brokers = tool.discoverKafkaCluster(opts.valueOf(zookeeper));
 
                 if (opts.has(dashboard) && opts.has(dashboardPath)) {
-                    tool.generateDashboard(opts.valueOf(dashboard), brokers, "Local InfluxDB", opts.valueOf(dashboardPath))
+                    tool.generateDashboard(opts.valueOf(dashboard), brokers, "Kafka Metrics InfluxDB", opts.valueOf(dashboardPath))
                         .save();
                 }
 
@@ -163,10 +182,11 @@ public class DiscoveryTool {
 
         ArrayNode clusterRow = dash.newRow(String.format("CLUSTER METRICS FOR %d broker(s)", brokers.size()), 172);
 
-        dash.newStat(clusterRow, "Controllers", 1, false, "current",
+        dash.newStat(clusterRow, "Controllers", 1,
                 "SELECT sum(\"Value\") FROM \"ActiveControllerCount\" " +
                         "WHERE \"group\" = 'kafka.controller' AND \"name\" = '" + name + "' AND $timeFilter " +
-                        "GROUP BY time(" + DEFAULT_INTERVAL + ")");
+                        "GROUP BY time(" + DEFAULT_INTERVAL + ")")
+            .put("valueFontSize", "150%");
 
         ObjectNode graph1 = dash.newGraph(clusterRow, "Under-Replicated Partitions", 2, false).put("bars", true);
         dash.newTarget(graph1, "$tag_service", "SELECT mean(\"Value\") FROM \"UnderReplicatedPartitions\" " +
@@ -192,7 +212,7 @@ public class DiscoveryTool {
                 "WHERE \"group\" = 'kafka.log' AND \"name\" = '" + name + "' AND $timeFilter " +
                 "GROUP BY time(1m), \"service\"");
 
-        ObjectNode graph2 = dash.newGraph(clusterRow, "Input / Sec", 1, false).put("fill", 2).put("stack", true);
+        ObjectNode graph2 = dash.newGraph(clusterRow, "Input / Sec", 2, false).put("fill", 2).put("stack", true);
         graph2.replace("y_formats", dash.newArray("bytes", "short"));
         dash.get(graph2, "grid").put("leftMin", 0);
         dash.newTarget(graph2, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"BytesInPerSec\" " +
@@ -206,12 +226,13 @@ public class DiscoveryTool {
                 "WHERE \"group\" = 'kafka.server' AND \"name\" = '" + name + "' AND $timeFilter " +
                 "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"");
 
-        ObjectNode graph4 = dash.newGraph(clusterRow, "Network Idle Time", 2, false);
-        graph4.replace("y_formats", dash.newArray("percentunit", "short"));
-        dash.get(graph4, "grid").put("leftMin", 0);
-        dash.newTarget(graph4, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"IdlePercent\" " +
-                "WHERE \"group\" = 'kafka.network' AND \"name\" = '" + name + "' AND $timeFilter " +
-                "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"");
+        dash.newStat(clusterRow, "Requests/Sec", 1,
+                "SELECT max(\"OneMinuteRate\") FROM \"RequestsPerSec\" " +
+                        "WHERE \"group\" = 'kafka.network' AND \"name\" = '" + name + "' AND $timeFilter " +
+                        "GROUP BY time(" + DEFAULT_INTERVAL + ")")
+                .put("decimals", 1)
+                .put("format", "short")
+                .replace("sparkline", dash.newObject().put("show", true).put("full", true));
 
         for (Broker broker : brokers) {
             //TODO Memory Usage Graph
