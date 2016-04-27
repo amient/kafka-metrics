@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-BASE_DIR=@BASE_DIR@
-INSTALL_DIR="$BASE_DIR/.install"
-DOWNLOAD_DIR="$BASE_DIR/.download"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "$DIR/kafka-metrics-common.sh"
+
 export GOPATH="$INSTALL_DIR/golang"
 
 install_influxdb() {
@@ -26,17 +26,6 @@ install_grafana() {
     npm install
     npm install -g grunt-cli
     grunt
-}
-
-download() {
-    URL=$1
-    LOCAL=$2
-    if [ ! -f "$LOCAL" ]; then
-        echo "Downloading $(basename $URL)..."
-        mkdir -p $(dirname $LOCAL)
-        curl "$URL" > "${LOCAL}.tmp"
-        mv "${LOCAL}.tmp" "$LOCAL"
-    fi
 }
 
 ensure_golang() {
