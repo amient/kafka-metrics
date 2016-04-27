@@ -158,9 +158,10 @@ public class Dashboard {
         return table;
     }
 
-    public ObjectNode newStat(ArrayNode rowPanels, String title, int span, boolean spark, String valueName, String query) {
+    public ObjectNode newStat(ArrayNode rowPanels, String title, int span, String query) {
         ObjectNode stat = newPanel(rowPanels, title, span, "singlestat");
-        stat.put("valueName", valueName);
+        stat.put("valueName", "current");
+        stat.put("decimals", 0);
         stat.put("maxDataPoints", 100);
         stat.put("prefix", "");
         stat.put("postfix", "");
@@ -171,7 +172,7 @@ public class Dashboard {
         stat.put("format", "none");
         stat.put("nullPointMode", "connected");
         stat.set("sparkline", mapper.createObjectNode()
-            .put("show", spark)
+            .put("show", false)
             .put("full", false)
         );
 //        "thresholds": "",

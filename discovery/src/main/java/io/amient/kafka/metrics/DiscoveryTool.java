@@ -67,7 +67,7 @@ public class DiscoveryTool {
                 List<Broker> brokers = tool.discoverKafkaCluster(opts.valueOf(zookeeper));
 
                 if (opts.has(dashboard) && opts.has(dashboardPath)) {
-                    tool.generateDashboard(opts.valueOf(dashboard), brokers, "Local InfluxDB", opts.valueOf(dashboardPath))
+                    tool.generateDashboard(opts.valueOf(dashboard), brokers, "Kafka Metrics InfluxDB", opts.valueOf(dashboardPath))
                         .save();
                 }
 
@@ -182,10 +182,11 @@ public class DiscoveryTool {
 
         ArrayNode clusterRow = dash.newRow(String.format("CLUSTER METRICS FOR %d broker(s)", brokers.size()), 172);
 
-        dash.newStat(clusterRow, "Controllers", 1, false, "current",
+        dash.newStat(clusterRow, "Controllers", 1,
                 "SELECT sum(\"Value\") FROM \"ActiveControllerCount\" " +
                         "WHERE \"group\" = 'kafka.controller' AND \"name\" = '" + name + "' AND $timeFilter " +
-                        "GROUP BY time(" + DEFAULT_INTERVAL + ")");
+                        "GROUP BY time(" + DEFAULT_INTERVAL + ")")
+            .put("valueFontSize", "150%");
 
         ObjectNode graph1 = dash.newGraph(clusterRow, "Under-Replicated Partitions", 2, false).put("bars", true);
         dash.newTarget(graph1, "$tag_service", "SELECT mean(\"Value\") FROM \"UnderReplicatedPartitions\" " +
@@ -225,12 +226,13 @@ public class DiscoveryTool {
                 "WHERE \"group\" = 'kafka.server' AND \"name\" = '" + name + "' AND $timeFilter " +
                 "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"");
 
-        ObjectNode graph4 = dash.newGraph(clusterRow, "Network Idle Time", 1, false);
-        graph4.replace("y_formats", dash.newArray("percentunit", "short"));
-        dash.get(graph4, "grid").put("leftMin", 0);
-        dash.newTarget(graph4, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"IdlePercent\" " +
-                "WHERE \"group\" = 'kafka.network' AND \"name\" = '" + name + "' AND $timeFilter " +
-                "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"");
+        dash.newStat(clusterRow, "Requests/Sec", 1,
+                "SELECT max(\"OneMinuteRate\") FROM \"RequestsPerSec\" " +
+                        "WHERE \"group\" = 'kafka.network' AND \"name\" = '" + name + "' AND $timeFilter " +
+                        "GROUP BY time(" + DEFAULT_INTERVAL + ")")
+                .put("decimals", 1)
+                .put("format", "short")
+                .replace("sparkline", dash.newObject().put("show", true).put("full", true));
 
         for (Broker broker : brokers) {
             //TODO Memory Usage Graph

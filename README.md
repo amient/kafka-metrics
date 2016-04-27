@@ -112,15 +112,16 @@ Provided you have `npm` and `grunt` of the minimum versions above, the following
 
 To launch the instance execute the following script:
   
-    ./instance/build/bin/start-kafka-metrics-instance.sh <CONF_DIR> <LOG_DIR>
+    ./instance/build/bin/start-kafka-metrics-instance.sh <CONF_DIR> <LOG_DIR> [<GRAFANA_URL>]
 
+If the optional argument `GRAFANA_URL` is given then only InfluxDB will be started assuming Grafana is already running.
 An example local config is provided under `./instance/build/conf` which can be used as follows:
  
     ./instance/build/bin/start-kafka-metrics-instance.sh $PWD/instance/build/conf $PWD/instance/.logs
 
 To stop the instance:
 
-    ./instance/build/bin/stop-kafka-metrics-instance.sh ./instance/build/conf
+    ./instance/build/bin/stop-kafka-metrics-instance.sh [influxdb|grafana]
 
 <a name="usage-discovery">
 ## Cluster Discovery Tool
@@ -133,7 +134,7 @@ or Metrics Agent. It is a Java Application and first has to be built with the fo
 
     ./gradlew :discovery:build
 
-### Example usage for local Kafka cluster and local InfluxDB
+### Example usage for local Kafka cluster and InfluxDB
 
     ./discovery/build/scripts/discovery \
         --zookeeper "localhost:2181" \
