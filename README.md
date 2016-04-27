@@ -1,10 +1,8 @@
 # Kafka Metrics
 
-This is a system whose purpose is to aggregate metrics from a topology of Kafka Brokers, Connectors, Mirrors, Stream 
-Topologies and other Producer and Consumer applications. It uses InfluxDB as the time series back-end which can then 
-be used for example with Grafana front-end or other visualisation and alerting tools. It contains several modules
-which can be used in different configurations together or separately serving a range of use cases from simple 
-non-intrusive inspection of existing kafka clusters and applications to global scale purpose-built monitoring solutions.
+This is a system for real-time aggregation of metrics from large distributed systems. Rather than replacing existing 
+monitoring solutions it fulfills the role of `real-time distributed aggregation` element to combine metrics from 
+multiple systems, with some out-of-the-box features for data streams pipelines based on Apache Kafka.
 
 ### Contents
 
@@ -35,6 +33,17 @@ non-intrusive inspection of existing kafka clusters and applications to global s
 <a name="overview">
 ## Overview
 </a>
+
+Kafka Metrics is a set of libraries and runtime modules that can be deployed in various configurations and can be used 
+as an **A)** out-of-the-box monitoring for data streams infrastructures built with Apache Kafka including automatic discovery
+ and configuration for existing Kafka clusters **B)** a framework for monitoring distributed systems in general using Apache Kafka infrastructure as a transport layer.
+
+The aim of the design is to have small composable modules that can be deployed by configuration to cover use cases ranging 
+from quick, non-intrusive inspection of existing Kafka clusters and stream pipelines, to massive-scale purpose-built 
+monitoring, detection and alerting infrastructure for distributed systems in general.
+
+It uses InfluxDB as the time series back-end and comes with, but is not limited to Grafana front-end and Kapactior
+alerting on top of that.
 
 ![overview](doc/metrics.png)
 
@@ -94,21 +103,24 @@ This module is just a set of installer and launcher scripts that manage local in
 This module can be used with all the scenarios whether for testing on development machine or deployed on a production 
 host but doesn't have to be used if you have existing InfluxDB component running. 
 
-Provided you have `npm` and `grunt` installed on, the following command should install all components:
+Bundled instance requires the following setup: `golang 1.4+`, `npm 2.5.0+` > `node 0.12.0+` > `grunt (v0.4.5)`
+
+Provided you have `npm` and `grunt` of the minimum versions above, the following command should install all components:
 
     ./gradlew :instance:install
 
 To launch the instance execute the following script:
   
-    ./instance/build/bin/start-kafka-metrics-instance.sh <CONF_DIR> <LOG_DIR>
+    ./instance/build/bin/start-kafka-metrics-instance.sh <CONF_DIR> <LOG_DIR> [<GRAFANA_URL>]
 
+If the optional argument `GRAFANA_URL` is given then only InfluxDB will be started assuming Grafana is already running.
 An example local config is provided under `./instance/build/conf` which can be used as follows:
  
     ./instance/build/bin/start-kafka-metrics-instance.sh $PWD/instance/build/conf $PWD/instance/.logs
 
 To stop the instance:
 
-    ./instance/build/bin/stop-kafka-metrics-instance.sh ./instance/build/conf
+    ./instance/build/bin/stop-kafka-metrics-instance.sh [influxdb|grafana]
 
 <a name="usage-discovery">
 ## Cluster Discovery Tool
@@ -121,7 +133,7 @@ or Metrics Agent. It is a Java Application and first has to be built with the fo
 
     ./gradlew :discovery:build
 
-### Example usage for local Kafka cluster and local InfluxDB
+### Example usage for local Kafka cluster and InfluxDB
 
     ./discovery/build/scripts/discovery \
         --zookeeper "localhost:2181" \
@@ -358,18 +370,52 @@ Using kafka console consumer with a formatter for kafka-metrics:
 ## Development
 </a>
 
-- TODO: implement missing shutdown hooks wherever consumer/producer api is used
-- TODO: configurable log4j.properties file location and environment var overrides for configs
-- TODO: expose all configs for kafka producer (NEW) configuration properties
-- TODO: more robust connection error handling, e.g. when one of the cluster is not reachable, warn once and try reconnecting quietly
-- TODO: sphinx documentation using generated versions in the examples
-- DESIGN: explore influxdb retention options 
-- DESIGN: add Kapacitor (also written in Go) to the default metrics instance
-- DESIGN: REST Metrics Agent - ideally re-using Kafka REST API but only if Schema Registry is optional - for non-jvm apps
-- DESIGN: consider writing the influxdb-loader as golang kafka consumer which would lead to a kafka-metrics instance
-    - Go 1.4
-    - MetricsInfluxDbPublisher (Go)
-    - InfluxDB 0.9 (Go)
-    - Grafana 2.4 (Go) > npm (v2.5.0) > node (v0.12.0) > grunt (v0.4.5) 
+### Issue tracking
+
+https://github.com/amient/kafka-metrics/issues
+
+### Versioning
+
+**Kafka Metrics is closely related to Apache Kafka** and from this perspective it can be viewed as having 2 dimensions:
+
+- *general functionality* - concepts that are available regardless of Kafka version 
+- *version-specific functionality* - implementation details that are specific/missing/added in concrete Kafka version
+
+We need this to be able to support variety of real-world setups which may use different Apache Kafka versions in their
+infrastructure. For this reason, **we maintain active branches for each version of Apache Kafka project** starting 
+from version 0.8.2.1. 
+
+When considering a new general feature, like for example having a first-class 
+[collectd integration](https://github.com/amient/kafka-metrics/issues/4), it should be considered how this will work in 
+different versions and then design the API appropriately such that it can be easily merged and ported in each active
+branch.
+
+Once designed, the general features should be implemented against the `master` branch which is linked to 
+the latest official release of Apache Kafka and once this is fully working a pull request against the master can be made.
+As part of merging the pull request, the feature must be back-ported to all supported versions.
+
+In case of using a new features of Apache Kafka which are not available in the previous versions actively supported
+ by this project, an attempt should be made to design the desired *general functionality* in such way that the older
+ version can merge and emulate the missing feature internally. Good example for this is using Kafka Connect features
+ in place of InfluxDB Loader that consumes measurement messages from Kafka topic and writes them to InfluxDb. 
+ The *general feature* here is to be able to publish measurements into InfluxDB from a Kafka topic. In 0.8.x versions 
+ we can use a custom Kafka Consumer (implemented in the core module as MetricsConsumer class) but in 0.9.x+ releases
+  we can use a Connector implementation that can be used in a Kafka Connect context. There is a re-design ticket which 
+  addresses the point of having the internal API flexible enough to allow for these 2 different ways of implementing it:
+  [issues/12](https://github.com/amient/kafka-metrics/issues/12)
+
+**Additional layer of complexity is different versions of InfluxDB.** To keep things simple we are not attempting to 
+support multiple versions of InfluxDB protocol and use the latest available. It is possible to support different 
+time-series backends but in the world of monitoring there are already a plenty of ways to integrate with InfluxDB so 
+for now we keep this option closed unless this becomes an actual pain that cannot be solved otherwise.
+
+### Contributing
+
+If you'd like to contribute, please open an issue to start a discussion about the idea or enter discussion of an 
+existing one and we'll take it from there.   
+
+
+  
+
 
 
