@@ -1,6 +1,11 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
-task install(type: Exec, dependsOn: ["copyScripts"]) {
+//use -Phostname="" to change advertised host for configuring influxdb and grafana
+if (!project.hasProperty("hostname")) {
+    ext.hostname = "localhost"
+}
+
+task install(type: Exec, dependsOn: ["copyScripts", "copyConfigs"]) {
     executable "$buildDir/scripts/install-kafka-metrics-instance.sh"
 }
 
@@ -17,13 +22,19 @@ task copyConfigs(dependsOn: ["copyInfluxDbConfig", "copyGrafanaConfig"])
 task copyInfluxDbConfig(type: Copy) {
     from new File("$projectDir/src")
     into new File("$buildDir/conf")
-    filter(ReplaceTokens, tokens: [DATA_DIR: project.projectDir.toString() + '/.data/influxdb'])
-    include('**/*.conf')
+    filter(ReplaceTokens, tokens: [
+            DATA_DIR: project.projectDir.toString() + '/.data/influxdb',
+            HOSTNAME: project.ext.hostname
+    ])
+    include('influxdb.conf')
 }
 
 task copyGrafanaConfig(type: Copy) {
     from new File("$projectDir/src")
     into new File("$buildDir/conf")
-    filter(ReplaceTokens, tokens: [DATA_DIR: project.projectDir.toString() + '/.data/grafana'])
-    include('**/*.ini')
+    filter(ReplaceTokens, tokens: [
+            DATA_DIR: project.projectDir.toString() + '/.data/grafana',
+            HOSTNAME: project.ext.hostname
+    ])
+    include('grafana.ini')
 }

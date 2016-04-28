@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 BASE_DIR=@BASE_DIR@
+DATA_DIR="$BASE_DIR/.data"
 INSTALL_DIR="$BASE_DIR/.install"
 
 download() {
@@ -76,6 +77,7 @@ wait_for_endpoint() {
     EXPECTED=$2
     MAX_WAIT=$3
     while [  $MAX_WAIT -gt 0 ]; do
+         echo "$URL $MAX_WAIT";
          RESPONSE_STATUS=$(curl --stderr /dev/null -X GET -i "$URL" | head -1 | cut -d' ' -f2)
          if [ ! -z $RESPONSE_STATUS ] ; then
             if [ $RESPONSE_STATUS == $EXPECTED ]; then
