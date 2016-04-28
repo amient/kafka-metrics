@@ -183,7 +183,9 @@ public class Dashboard {
     }
 
     public ObjectNode newTarget(ObjectNode panel, String aliasPattern, String rawQuery) {
-        ObjectNode target = ((ArrayNode) panel.get("targets")).addObject();
+        ArrayNode targets = ((ArrayNode) panel.get("targets"));
+        ObjectNode target = targets.addObject();
+        target.put("refId", Character.toString((char) (64 + targets.size())));
         target.put("query", rawQuery);
         target.put("alias", aliasPattern);
         target.put("rawQuery", true);

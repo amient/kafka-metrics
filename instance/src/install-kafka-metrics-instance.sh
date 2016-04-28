@@ -21,11 +21,10 @@ install_grafana() {
     cd $GOPATH/src/github.com/grafana/grafana
     go run build.go setup              # (only needed once to install godep)
     $GOPATH/bin/godep restore          # (will pull down all golang lib dependencies in your current GOPATH)
-    #FIXME grafana head after 3.0.0-pre1 is broken
     go run build.go build
     npm install
     npm install -g grunt-cli
-    grunt
+    grunt --force
 }
 
 ensure_golang() {

@@ -17,10 +17,11 @@ start_influxdb() {
     export INFLUXDB_CONFIG="$CONFIG_DIR/influxdb.conf"
     if [ -f "$INFLUXDB_CONFIG" ]; then
         mkdir -p "$LOG_DIR/influxdb"
+        mkdir -p "$DATA_DIR/influxdb"
         export STDOUT="$LOG_DIR/influxdb/stdout.log"
         export STDERR="$LOG_DIR/influxdb/stderr.log"
         echo "starting influxdb deamon with config $INFLUXDB_CONFIG"
-        start_with_output_redirect "influxdb" influxd -config $INFLUXDB_CONFIG
+        start_with_output_redirect "influxdb" "$INSTALL_DIR/golang/bin/influxd" -config $INFLUXDB_CONFIG
         API_HOST=`cat "$INFLUXDB_CONFIG" | grep -A 10 -e "^\[meta\]$" | grep hostname | cut -d'=' -f2 | tr -d '"' | tr -d " "`
         API_PORT=`cat "$INFLUXDB_CONFIG" | grep -A 10 -e "^\[http\]$" | grep bind-address | cut -d'=' -f2 | tr -d '"' | tr -d " "`
         INFLUXDB_URL="http://$API_HOST$API_PORT"
@@ -45,6 +46,8 @@ start_grafana() {
     if [ -f "$GRAFANA_CONFIG" ]; then
         export GF_LOG_MODE="file"
         export GF_PATHS_LOGS="$LOG_DIR/grafana"
+        mkdir -p "$GF_PATHS_LOGS"
+        mkdir -p "$DATA_DIR/grafana/dashboards"
         echo "starting grafana with config $GRAFANA_CONFIG"
         cd "$INSTALL_DIR/golang/src/github.com/grafana/grafana"
         start "grafana" "./bin/grafana-server" "-config" $GRAFANA_CONFIG

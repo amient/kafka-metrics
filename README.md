@@ -108,20 +108,21 @@ Bundled instance requires the following setup: `golang 1.4+`, `npm 2.5.0+` > `no
 
 Provided you have `npm` and `grunt` of the minimum versions above, the following command should install all components:
 
-    ./gradlew :instance:install
+    ./gradlew [-Phostname=<...>] :instance:install
 
+Optionally, if you want to access the instance from outside the localhost provide `-Phostname=..` property.
 To launch the instance execute the following script:
-  
+
     ./instance/build/bin/start-kafka-metrics-instance.sh <CONF_DIR> <LOG_DIR> [<GRAFANA_URL>]
 
 If the optional argument `GRAFANA_URL` is given then only InfluxDB will be started assuming Grafana is already running.
 An example local config is provided under `./instance/build/conf` which can be used as follows:
  
-    ./instance/build/bin/start-kafka-metrics-instance.sh $PWD/instance/build/conf $PWD/instance/.logs
+    ./instance/build/scripts/start-kafka-metrics-instance.sh $PWD/instance/build/conf $PWD/instance/.logs
 
 To stop the instance:
 
-    ./instance/build/bin/stop-kafka-metrics-instance.sh [influxdb|grafana]
+    ./instance/build/scripts/stop-kafka-metrics-instance.sh [influxdb|grafana]
 
 <a name="usage-discovery">
 ## Cluster Discovery Tool
