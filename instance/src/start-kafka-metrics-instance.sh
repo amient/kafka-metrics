@@ -21,7 +21,7 @@ start_influxdb() {
         export STDOUT="$LOG_DIR/influxdb/stdout.log"
         export STDERR="$LOG_DIR/influxdb/stderr.log"
         echo "starting influxdb deamon with config $INFLUXDB_CONFIG"
-        start_with_output_redirect "influxdb" influxd -config $INFLUXDB_CONFIG
+        start_with_output_redirect "influxdb" "$INSTALL_DIR/golang/bin/influxd" -config $INFLUXDB_CONFIG
         API_HOST=`cat "$INFLUXDB_CONFIG" | grep -A 10 -e "^\[meta\]$" | grep hostname | cut -d'=' -f2 | tr -d '"' | tr -d " "`
         API_PORT=`cat "$INFLUXDB_CONFIG" | grep -A 10 -e "^\[http\]$" | grep bind-address | cut -d'=' -f2 | tr -d '"' | tr -d " "`
         INFLUXDB_URL="http://$API_HOST$API_PORT"
