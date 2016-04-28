@@ -227,12 +227,12 @@ public class DiscoveryTool {
                 "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"");
 
         dash.newStat(clusterRow, "Requests/Sec", 1,
-                "SELECT max(\"OneMinuteRate\") FROM \"RequestsPerSec\" " +
+                "SELECT mean(\"OneMinuteRate\") FROM \"RequestsPerSec\" " +
                         "WHERE \"group\" = 'kafka.network' AND \"name\" = '" + name + "' AND $timeFilter " +
                         "GROUP BY time(" + DEFAULT_INTERVAL + ")")
                 .put("decimals", 1)
                 .put("format", "short")
-                .replace("sparkline", dash.newObject().put("show", true).put("full", true));
+                .replace("sparkline", dash.newObject().put("show", true).put("full", false));
 
         for (Broker broker : brokers) {
             //TODO Memory Usage Graph
