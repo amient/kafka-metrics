@@ -37,7 +37,7 @@ import java.util.*;
 
 public class DiscoveryTool {
 
-    private static String DEFAULT_INTERVAL="10s";
+//    private static int INTERVAL_S = 10;
 
     public static void main(String[] args) throws IOException {
 
@@ -49,6 +49,7 @@ public class DiscoveryTool {
         OptionSpec<String> dashboardPath = parser.accepts("dashboard-path", "Grafana location, i.e. `./instance/.data/grafana/dashboards`").withRequiredArg();
         OptionSpec<String> topic = parser.accepts("topic", "Name of the metrics topic to consume measurements from").withRequiredArg();
         OptionSpec<String> influxdb = parser.accepts("influxdb", "InfluxDB connect URL (including user and password)").withRequiredArg();
+        OptionSpec<String> interval = parser.accepts("interval", "JMX scanning interval in seconds").withRequiredArg().defaultsTo("10");
         //TODO --producer-bootstrap for truly non-intrusive agent deployment
         //TODO --influxdb-database
 
@@ -65,16 +66,18 @@ public class DiscoveryTool {
 
             try {
                 List<Broker> brokers = tool.discoverKafkaCluster(opts.valueOf(zookeeper));
+                int interval_s = Integer.parseInt(opts.valueOf(interval));
 
                 if (opts.has(dashboard) && opts.has(dashboardPath)) {
-                    tool.generateDashboard(opts.valueOf(dashboard), brokers, "Kafka Metrics InfluxDB", opts.valueOf(dashboardPath))
-                        .save();
+                    tool.generateDashboard(opts.valueOf(dashboard), brokers, "Kafka Metrics InfluxDB",
+                       opts.valueOf(dashboardPath), interval_s)
+                            .save();
                 }
 
                 if (opts.has(topic)) {
                     //producer/reporter settings
                     System.out.println("kafka.metrics.topic=" + opts.valueOf(topic));
-                    System.out.println("kafka.metrics.polling.interval=" + DEFAULT_INTERVAL);
+                    System.out.println("kafka.metrics.polling.interval=" + interval_s + "s");
                     System.out.println("kafka.metrics.bootstrap.servers=" + brokers.get(0).hostPort());
                     //consumer settings
                     System.out.println("consumer.topic=" + opts.valueOf(topic));
@@ -83,7 +86,7 @@ public class DiscoveryTool {
                 }
 
                 if (!opts.has(influxdb) || !opts.has(topic)) {
-                    tool.generateScannerConfig(brokers, opts.valueOf(dashboard)).list(System.out);
+                    tool.generateScannerConfig(brokers, opts.valueOf(dashboard), interval_s).list(System.out);
                 }
 
                 if (opts.has(influxdb)) {
@@ -116,13 +119,13 @@ public class DiscoveryTool {
         }
     }
 
-    public Properties generateScannerConfig(List<Broker> brokers, String name) throws IOException {
+    public Properties generateScannerConfig(List<Broker> brokers, String name, int interval_s) throws IOException {
         Properties scannerProps = new Properties();
         for (Broker broker : brokers) {
             Integer section = Integer.parseInt(broker.id) + 1;
             scannerProps.put(String.format("jmx.%d.address", section), String.format("%s:%d", broker.host, broker.jmxPort));
             scannerProps.put(String.format("jmx.%d.query.scope", section), "kafka.*:*");
-            scannerProps.put(String.format("jmx.%d.query.interval.s", section), "10");
+            scannerProps.put(String.format("jmx.%d.query.interval.s", section), String.valueOf(interval_s));
             scannerProps.put(String.format("jmx.%d.tag.host", section), broker.host);
             scannerProps.put(String.format("jmx.%d.tag.service", section), String.format("broker-%s", broker.id));
             scannerProps.put(String.format("jmx.%d.tag.name", section), name);
@@ -177,7 +180,7 @@ public class DiscoveryTool {
         }
     }
 
-    public Dashboard generateDashboard(String name, List<Broker> brokers, String dataSource, String path) {
+    public Dashboard generateDashboard(String name, List<Broker> brokers, String dataSource, String path, int interval_s) {
         Dashboard dash = new Dashboard(name, dataSource, path + "/" + name + ".json");
 
         ArrayNode clusterRow = dash.newRow(String.format("CLUSTER METRICS FOR %d broker(s)", brokers.size()), 172);
@@ -185,18 +188,18 @@ public class DiscoveryTool {
         dash.newStat(clusterRow, "Controllers", 1,
                 "SELECT sum(\"Value\") FROM \"ActiveControllerCount\" " +
                         "WHERE \"group\" = 'kafka.controller' AND \"name\" = '" + name + "' AND $timeFilter " +
-                        "GROUP BY time(" + DEFAULT_INTERVAL + ")")
+                        "GROUP BY time(" + interval_s + "s)")
             .put("valueFontSize", "150%");
 
         ObjectNode graph1 = dash.newGraph(clusterRow, "Under-Replicated Partitions", 2, false).put("bars", true);
         dash.newTarget(graph1, "$tag_service", "SELECT mean(\"Value\") FROM \"UnderReplicatedPartitions\" " +
                 "WHERE \"group\" = 'kafka.server' AND \"name\" = '" + name + "' AND $timeFilter " +
-                "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"");
+                "GROUP BY time(" + interval_s + "s), \"service\"");
 
         dash.newTable(clusterRow, "Partition Count", 2, "avg", "$tag_service",
                 "SELECT last(\"Value\") FROM \"PartitionCount\" " +
                 "WHERE \"group\" = 'kafka.server' AND \"name\" = '" + name + "' AND $timeFilter " +
-                "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"")
+                "GROUP BY time(" + interval_s + "s), \"service\"")
             .put("transform", "timeseries_aggregations")
             .put("showHeader", false);
 
@@ -217,19 +220,19 @@ public class DiscoveryTool {
         dash.get(graph2, "grid").put("leftMin", 0);
         dash.newTarget(graph2, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"BytesInPerSec\" " +
                 "WHERE \"group\" = 'kafka.server' AND \"name\" = '" + name + "' AND $timeFilter " +
-                "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"");
+                "GROUP BY time(" + interval_s + "s), \"service\"");
 
         ObjectNode graph3 = dash.newGraph(clusterRow, "Output / Sec", 2, false).put("fill", 2).put("stack", true);
         graph3.replace("y_formats", dash.newArray("bytes", "short"));
         dash.get(graph3, "grid").put("leftMin", 0);
         dash.newTarget(graph3, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"BytesOutPerSec\" " +
                 "WHERE \"group\" = 'kafka.server' AND \"name\" = '" + name + "' AND $timeFilter " +
-                "GROUP BY time(" + DEFAULT_INTERVAL + "), \"service\"");
+                "GROUP BY time(" + interval_s + "s), \"service\"");
 
         dash.newStat(clusterRow, "Requests/Sec", 1,
                 "SELECT mean(\"OneMinuteRate\") FROM \"RequestsPerSec\" " +
                         "WHERE \"group\" = 'kafka.network' AND \"name\" = '" + name + "' AND $timeFilter " +
-                        "GROUP BY time(" + DEFAULT_INTERVAL + ")")
+                        "GROUP BY time(" + interval_s + "s)")
                 .put("decimals", 1)
                 .put("format", "short")
                 .replace("sparkline", dash.newObject().put("show", true).put("full", false));
