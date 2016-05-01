@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import joptsimple.internal.Strings;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -33,6 +34,7 @@ public class Dashboard {
     private final ArrayNode rows;
     private final String filename;
     private final String dataSource;
+    private final ArrayNode templating;
     private int numPanels = 0;
 
     public Dashboard(String title, String dataSource, String filename) {
@@ -53,7 +55,8 @@ public class Dashboard {
         root.put("sharedCrosshair", false);
         root.set("links", mapper.createArrayNode());
         root.set("tags", mapper.createArrayNode());
-        root.set("templating", mapper.createObjectNode().set("list", mapper.createArrayNode()));
+        templating = mapper.createArrayNode();
+        root.set("templating", mapper.createObjectNode().set("list", templating));
         root.set("annotations", mapper.createObjectNode().set("list", mapper.createArrayNode()));
         rows = mapper.createArrayNode();
         root.set("rows", rows);
@@ -73,13 +76,13 @@ public class Dashboard {
         }
     }
 
-    public ArrayNode newRow(String rowTitle, int heightPx) {
+    public ArrayNode newRow(String rowTitle, int heightPx, boolean expand) {
         ObjectNode row = rows.addObject();
         row.put("title", rowTitle);
         row.put("showTitle", rowTitle != null);
         row.put("height", heightPx + "px");
         row.put("editable", true);
-        row.put("collapse", false);
+        row.put("collapse", !expand);
         ArrayNode panels = mapper.createArrayNode();
         row.set("panels", panels);
         return panels;
@@ -103,31 +106,31 @@ public class Dashboard {
         graph.put("stack", false);
         //
         graph.set("tooltip", mapper.createObjectNode()
-            .put("value_type", "cumulative")
-            .put("shared", true));
+                .put("value_type", "cumulative")
+                .put("shared", true));
         //
         graph.set("seriesOverrides", mapper.createArrayNode());
         graph.set("aliasColors", mapper.createObjectNode());
         graph.set("legend", mapper.createObjectNode()
-            .put("show", showLegend)
-            .put("values", false)
-            .put("min", false)
-            .put("max", false)
-            .put("current", false)
-            .put("total", false)
-            .put("avg", false));
+                .put("show", showLegend)
+                .put("values", false)
+                .put("min", false)
+                .put("max", false)
+                .put("current", false)
+                .put("total", false)
+                .put("avg", false));
         //
         graph.set("grid", mapper.createObjectNode()
-            .put("leftLogBase", 1)
-            .put("leftMax", (Integer)null)
-            .put("rightMax", (Integer)null)
-            .put("leftMin", (Integer)null)
-            .put("rightMin", (Integer)null)
-            .put("rightLogBase", (Integer)1)
-            .put("threshold1", (Integer)null)
-            .put("threshold1Color", "rgba(216, 200, 27, 0.27)")
-            .put("threshold2", (Integer)null)
-            .put("threshold2Color", "rgba(234, 112, 112, 0.22)"));
+                .put("leftLogBase", 1)
+                .put("leftMax", (Integer) null)
+                .put("rightMax", (Integer) null)
+                .put("leftMin", (Integer) null)
+                .put("rightMin", (Integer) null)
+                .put("rightLogBase", (Integer) 1)
+                .put("threshold1", (Integer) null)
+                .put("threshold1Color", "rgba(216, 200, 27, 0.27)")
+                .put("threshold2", (Integer) null)
+                .put("threshold2Color", "rgba(234, 112, 112, 0.22)"));
 
         return graph;
     }
@@ -142,19 +145,19 @@ public class Dashboard {
         table.set("columns", columns);
         ArrayNode styles = mapper.createArrayNode();
         styles.addObject()
-            .put("value", valueName)
-            .put("type", "number")
-            .put("pattern", "/.*/")
-            .put("decimals", 0)
-            //.put("colorMode", null)//
-            .put("unit", "short");
+                .put("value", valueName)
+                .put("type", "number")
+                .put("pattern", "/.*/")
+                .put("decimals", 0)
+                //.put("colorMode", null)//
+                .put("unit", "short");
         table.set("styles", styles);
         //
         table.put("showHeader", true);
         table.put("scroll", true);
         table.put("fontSize", "100%");
         table.put("pageSize", (Integer) null);
-        table.set("sort", mapper.createObjectNode().put("col", (String)null).put("desc", false));
+        table.set("sort", mapper.createObjectNode().put("col", (String) null).put("desc", false));
         return table;
     }
 
@@ -165,21 +168,48 @@ public class Dashboard {
         stat.put("maxDataPoints", 100);
         stat.put("prefix", "");
         stat.put("postfix", "");
-        stat.put("nullText", (String)null);
+        stat.put("nullText", (String) null);
         stat.put("prefixFontSize", "50%");
         stat.put("valueFontSize", "80%");
         stat.put("postfixFontSize", "50%");
         stat.put("format", "none");
         stat.put("nullPointMode", "connected");
         stat.set("sparkline", mapper.createObjectNode()
-            .put("show", false)
-            .put("full", false)
+                .put("show", false)
+                .put("full", false)
         );
 //        "thresholds": "",
 //        "colorBackground": false,
 //        "colorValue": false,
         newTarget(stat, "", query);
         return stat;
+    }
+
+    public ObjectNode newVariable(String name, boolean includeAll, String... options) {
+        ObjectNode variable = templating.addObject()
+                .put("type", "custom")
+                .put("name", name)
+                .put("label", name)
+                .put("includeAll", includeAll)
+                .put("multi", false)
+                .put("query", Strings.join(options, ","))
+                .put("datasource", (String) null)
+                .put("refresh", 0)
+                .put("hide", 0);
+        variable.set("current", mapper.createObjectNode()
+                .put("text", "All")
+                .put("value", "$__all")
+                .set("tags", mapper.createArrayNode()));
+        ArrayNode optionsArray = mapper.createArrayNode();
+        variable.set("options", optionsArray);
+        if (includeAll) {
+            variable.put("allValue", ".*");
+            optionsArray.addObject().put("text", "All").put("value", "$__all").put("selected", true);
+        }
+        for(String option: options) {
+            optionsArray.addObject().put("text", option).put("value", option).put("selected", false);
+        }
+        return variable;
     }
 
     public ObjectNode newTarget(ObjectNode panel, String aliasPattern, String rawQuery) {
@@ -217,7 +247,7 @@ public class Dashboard {
         ObjectNode panel = rowPanels.addObject();
         panel.put("title", title);
         panel.put("span", span);
-        panel.put("id", ++ numPanels );
+        panel.put("id", ++numPanels);
         panel.put("datasource", dataSource);
         panel.put("type", type);
         panel.put("renderer", "flot");
@@ -239,9 +269,9 @@ public class Dashboard {
         return mapper.createObjectNode();
     }
 
-    public ArrayNode newArray(String ... values) {
+    public ArrayNode newArray(String... values) {
         ArrayNode node = mapper.createArrayNode();
-        for(String v: values) node.add(v);
+        for (String v : values) node.add(v);
         return node;
     }
 
