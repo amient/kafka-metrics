@@ -6,13 +6,14 @@ multiple systems, with some out-of-the-box features for data streams pipelines b
 
 ### Contents
 
-1. [Overivew](#overview)
+1. [Overview](#overview)
 	- [Architecture](#overview)
 	- [Basic Scenario](#scenario0) 
 	- [Multi-Server Scenario](#scenario1)
 	- [Multi-Data-Centre Scenario](#scenario3) 
 	- [Multi-Enviornment Scenario](#scenario2)
-2. [Modules](#usage-instance)
+2. [Quick Start](#quick-start)
+3. [Modules Reference](#modules-reference)
  	- [Bundled Instance: InfluxDB, Grafana](#usage-instance)
  	- [Cluster Discovery Tool](#usage-discovery)
  	- [InfluxDB Loader](#usage-loader) 
@@ -22,13 +23,13 @@ multiple systems, with some out-of-the-box features for data streams pipelines b
 	    - [Usage in Kafka NEW Producer (0.8.2+) and Consumer (0.9+)](#usage-reporter-kafka-new)
 	    - [Usage in any application using dropwizard metrics (formerly yammer metrics)](#usage-reporter-dropwizard)
     - [Usage in Samza](#usage-samza)
-6. [Configuration](#configuration)
+4. [Configuration](#configuration)
     - [InfluxDB Configuration](#configuration-influxdb)
     - [JMX Scanner Configuration](#configuration-scanner)
     - [Metrics Producer Configuration](#configuration-producer)
     - [Metrics Consumer Configuration](#configuration-consumer)
-7. [Operations & Troubleshooting](#operations)
-8. [Development](#development)
+5. [Operations & Troubleshooting](#operations)
+6. [Development](#development)
 
 <a name="overview">
 ## Overview
@@ -95,6 +96,42 @@ the metrics topic.***
 
 ![scenario3](doc/kafka-metrics-scenario3.png)
 
+
+<a name="quick-start">
+## Quick-start example with existing Kafka cluster using discovery module and auto-generated dashboard 
+</a>
+
+First we need to build the project from source which requires at least `java 1.7` installed on your system:
+
+    ./gradlew build 
+
+Next we install the default instance of InfluxDB and Grafana which requires `go` language (golang) and some front-end tools, 
+namely `npm 2.5.0+` and `grunt v0.4.5+` - if you don't have these, install the appropriate packages for your platform 
+and then run the following command:
+
+    ./gradlew -Phostname=localhost :instance:install
+
+Installing Grafana and the front-end tools it requires may the most tricky part of the setup and if you were successful
+ you should see an empty Grafana UI at `http://localhost:3000` - under Data Sources tab there should also be one item 
+ named 'Kafka Metrics InfluxDB'. The next command will discover all the brokers and topics by looking into the zookeeper 
+ so make sure you replace `<CLUSTER-SEED-HOST>` with a host name of one of your Kafka brokers:
+
+    ./discovery/build/scripts/discovery --zookeeper "<CLUSTER-SEED-HOST>:2181" --dashboard "my-kafka-cluster" \
+        --dashboard-path $PWD/instance/.data/grafana/dashboards --interval 25 \ 
+        --influxdb  "http://root:root@localhost:8086" | ./influxdb-loader/build/scripts/influxdb-loader
+
+The dashboard should be now accessible on this url:
+
+    http://localhost:3000/dashboard/file/my-kafka-cluster.json
+
+For a cluster of 3 brokers it might look like this:
+ 
+![screenshot](doc/discovery-example-3-brokers.png)
+
+<a name="modules-reference">
+## Modules Reference
+</a>
+
 <a name="usage-instance">
 ### Bundled Instance 
 </a>
@@ -124,7 +161,7 @@ To stop the instance:
     ./instance/build/scripts/stop-kafka-metrics-instance.sh [influxdb|grafana]
 
 <a name="usage-discovery">
-## Cluster Discovery Tool
+### Cluster Discovery Tool
 </a>
 
 Metrics Discovery tool can be used for generating configs and dashboards for existing Kafka Clusters. It uses
@@ -134,7 +171,7 @@ or Metrics Agent. It is a Java Application and first has to be built with the fo
 
     ./gradlew :discovery:build
 
-### Example usage for local Kafka cluster and InfluxDB
+#### Example usage for local Kafka cluster and InfluxDB
 
     ./discovery/build/scripts/discovery \
         --zookeeper "localhost:2181" \
@@ -144,11 +181,9 @@ or Metrics Agent. It is a Java Application and first has to be built with the fo
 
 The above command discovers all the brokers that are part of the cluster and configures an influxdb-loader
  instance using local instance of InfluxDB. It also generates a dashboard for the discovered cluster which
- can be viewed, assuming Grafan is also running alongside InfluxDB (see Metrics Instance):
+ will be stored in the default Kafka Metrics instance.
 
-    http://localhost:3000/dashboard/file/local-kafka-cluster.json
-
-### Example usage for remote Kafka cluster with Metrics Agent 
+#### Example usage for remote Kafka cluster with Metrics Agent 
 
 On the Kafka Cluster:
 
@@ -166,12 +201,9 @@ On the Kafka Metrics instance:
         --dashboard-path "./instance/.data/grafana/dashboards" \
         --influxdb "http://root:root@localhost:8086" | ./influxdb-loader/build/scripts/influxdb-loader
 
-### Example dashboard generated and configured for a cluster of 3 brokers
-
-![overview](doc/discovery-example-3-brokers.png)
 
 <a name="usage-loader">
-## InfluxDB Loader Usage
+### InfluxDB Loader Usage
 </a>
 
 InfluxDB Loader is a Java application which writes measurements into InfluxDB backend which can be configured
@@ -194,7 +226,7 @@ InfluxDB and Grafana running locally, you can use the following script and confi
     ./influxdb-loader/build/scripts/influxdb-loader influxdb-loader/conf/local-jmx.properties
 
 <a name="metrics-agent">
-## Metrics Agent Usage
+### Metrics Agent Usage
 </a>
 
 The purpose of the agent is to move expensive metrics collection like JMX polling closer to the application and publish
@@ -211,7 +243,7 @@ To run the agent instance, a configuration file is required, which should contai
     ./metrics-agent/build/scripts/kafka-metrics-agent <CONFIG-PROPERTIES-FILE>
 
 <a name="usage-reporter">
-## Topic Reporter Usage
+### Topic Reporter Usage
 </a>
 
 The Topic Reporter provides a different way of collecting metrics from Kafka Brokers, Producers, Consumers and Samza
@@ -232,7 +264,7 @@ The reporter only requires one set of configuration properties:
 
 
 <a name="usage-reporter-kafka-old">
-### Usage in Kafka Broker, Kafka Prism, Kafka Producer (pre 0.8.2), Kafka Consumer (pre 0.9)
+#### Usage in Kafka Broker, Kafka Prism, Kafka Producer (pre 0.8.2), Kafka Consumer (pre 0.9)
 </a>
 
 
@@ -242,14 +274,14 @@ add following properties to the configuration for the component
     kafka.metrics.<CONFIGURATION-OPTIONS>...
 
 <a name="usage-reporter-kafka-new">
-###  Usage in Kafka NEW Producer (0.8.2+) and Consumer (0.9+) 
+####  Usage in Kafka NEW Producer (0.8.2+) and Consumer (0.9+) 
 </a>
 
     metric.reporters=io.amient.kafka.metrics.TopicReporter
     kafka.metrics.<CONFIGURATION-OPTIONS>...
 
 <a name="usage-reporter-dropwizard">
-### Usage in any application using dropwizard metrics (formerly yammer metrics)
+#### Usage in any application using dropwizard metrics (formerly yammer metrics)
 </a>
 
 Like any other yammer metrics reporter, given an instance (and configuration), once started, the reporter
@@ -284,7 +316,7 @@ will produce kafka-metrics messages to a configured topic every given time inter
     reporter.start(10, TimeUnit.SECONDS);
 
 <a name="usage-samza">
-##  Usage in Samza (0.9+) 
+###  Usage in Samza (0.9+) 
 </a>
 
 The InfluxDB Loader and Metrics Connect use the same code which understands json messages that Samza generates 
@@ -417,10 +449,7 @@ for now we keep this option closed unless this becomes an actual pain that canno
 ### Contributing
 
 If you'd like to contribute, please open an issue to start a discussion about the idea or enter discussion of an 
-existing one and we'll take it from there.   
-
-
-  
+existing one and we'll take it from there.
 
 
 
