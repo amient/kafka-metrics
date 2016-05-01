@@ -187,7 +187,8 @@ public class DiscoveryTool extends ZkClient implements Closeable {
             String name, List<Broker> brokers, List<String> topics, String dataSource, String path, int interval_s) {
         Dashboard dash = new Dashboard(name, dataSource, path + "/" + name + ".json");
 
-        ArrayNode clusterRow = dash.newRow(String.format("CLUSTER METRICS FOR %d broker(s)", brokers.size()), 172);
+        ///////////// ROW 1 - AGGREGATED CLUSTER METRICS
+        ArrayNode clusterRow = dash.newRow(String.format("CLUSTER METRICS FOR %d broker(s)", brokers.size()), 172, true);
 
         dash.newStat(clusterRow, "Controllers", 1,
                 "SELECT sum(\"Value\") FROM \"ActiveControllerCount\" " +
@@ -241,9 +242,19 @@ public class DiscoveryTool extends ZkClient implements Closeable {
                 .put("format", "short")
                 .replace("sparkline", dash.newObject().put("show", true).put("full", false));
 
+        ///////////// ROW 2 - TOPIC METRICS
+        dash.newVariable("topic", true, topics.toArray(new String[topics.size()]));
+        ArrayNode topicsRow = dash.newRow("TOPIC METRICS FOR `$topic`", 250, true);
+        ObjectNode graphT1 = dash.newGraph(topicsRow, "Input / Sec", 6, false).put("fill", 7).put("stack", true);
+        graphT1.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", true));
+        dash.newTarget(graphT1, "$tag_topic", "SELECT mean(\"OneMinuteRate\") FROM \"BytesInPerSec\" " +
+                "WHERE \"name\" = '" + name + "' AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
+                "GROUP BY time(" + interval_s + "s), \"topic\" fill(null)");
+
+        ///////////// ROW (2 + b) - BROKER-LEVEL METRICS
         for (Broker broker : brokers) {
             //extra row for each broker
-            ArrayNode brokerRow = dash.newRow(String.format("Kafka Broker ID %s @ %s", broker.id, broker.hostPort()), 250);
+            ArrayNode brokerRow = dash.newRow(String.format("Kafka Broker ID %s @ %s", broker.id, broker.hostPort()), 250, false);
 
             //Purgatory graph
             ObjectNode graph6 = dash.newGraph(brokerRow, "Num.delayed requests", 4, true);
@@ -291,10 +302,6 @@ public class DiscoveryTool extends ZkClient implements Closeable {
                     "GROUP BY time($interval) fill(null)");
         }
 
-        //TODO for(String topic: topics) { ... } //maybe use a variable template for either '*' or '<TOPIC>'
-        for (String topic: topics) {
-            ArrayNode brokerRow = dash.newRow(String.format("Kafka Topic `%s`", topic), 150);
-        }
         return dash;
     }
 }
