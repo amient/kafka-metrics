@@ -187,7 +187,30 @@ public class DiscoveryTool extends ZkClient implements Closeable {
             String name, List<Broker> brokers, List<String> topics, String dataSource, String path, int interval_s) {
         Dashboard dash = new Dashboard(name, dataSource, path + "/" + name + ".json");
 
-        ///////////// ROW 1 - AGGREGATED CLUSTER METRICS
+        ///////////// ROW 1 - TOPIC METRICS
+        dash.newVariable("topic", true, topics.toArray(new String[topics.size()]));
+        ArrayNode topicsRow = dash.newRow("TOPIC METRICS FOR `$topic`", 250, true);
+        ObjectNode graphT1 = dash.newGraph(topicsRow, "Input / Sec", 5, false).put("fill", 4).put("stack", false);
+        graphT1.replace("y_formats", dash.newArray("bytes", "short"));
+        graphT1.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", true));
+        dash.newTarget(graphT1, "$tag_topic", "SELECT sum(\"OneMinuteRate\") FROM \"BytesInPerSec\" " +
+                "WHERE \"name\" = '" + name + "' AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
+                "GROUP BY time(" + interval_s + "s), \"topic\" fill(null)");
+
+        ObjectNode graphT2 = dash.newGraph(topicsRow, "Failed Fetch Requests / Sec", 2, false).put("fill", 4).put("stack", false);
+        graphT2.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", true));
+        dash.newTarget(graphT2, "$tag_topic", "SELECT sum(\"OneMinuteRate\") FROM \"FailedFetchRequestsPerSec\" " +
+                "WHERE \"name\" = '" + name + "' AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
+                "GROUP BY time(" + interval_s + "s), \"topic\" fill(null)");
+
+        ObjectNode graphT3 = dash.newGraph(topicsRow, "Output / Sec", 5, false).put("fill", 4).put("stack", false);
+        graphT3.replace("y_formats", dash.newArray("bytes", "short"));
+        graphT3.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", true));
+        dash.newTarget(graphT3, "$tag_topic", "SELECT sum(\"OneMinuteRate\") FROM \"BytesOutPerSec\" " +
+                "WHERE \"name\" = '" + name + "' AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
+                "GROUP BY time(" + interval_s + "s), \"topic\" fill(null)");
+
+        ///////////// ROW 2 - AGGREGATED CLUSTER METRICS
         ArrayNode clusterRow = dash.newRow(String.format("CLUSTER METRICS FOR %d broker(s)", brokers.size()), 172, true);
 
         dash.newStat(clusterRow, "Controllers", 1,
@@ -242,14 +265,6 @@ public class DiscoveryTool extends ZkClient implements Closeable {
                 .put("format", "short")
                 .replace("sparkline", dash.newObject().put("show", true).put("full", false));
 
-        ///////////// ROW 2 - TOPIC METRICS
-        dash.newVariable("topic", true, topics.toArray(new String[topics.size()]));
-        ArrayNode topicsRow = dash.newRow("TOPIC METRICS FOR `$topic`", 250, true);
-        ObjectNode graphT1 = dash.newGraph(topicsRow, "Input / Sec", 6, false).put("fill", 7).put("stack", true);
-        graphT1.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", true));
-        dash.newTarget(graphT1, "$tag_topic", "SELECT mean(\"OneMinuteRate\") FROM \"BytesInPerSec\" " +
-                "WHERE \"name\" = '" + name + "' AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
-                "GROUP BY time(" + interval_s + "s), \"topic\" fill(null)");
 
         ///////////// ROW (2 + b) - BROKER-LEVEL METRICS
         for (Broker broker : brokers) {
