@@ -192,20 +192,20 @@ public class DiscoveryTool extends ZkClient implements Closeable {
         ArrayNode topicsRow = dash.newRow("TOPIC METRICS FOR `$topic`", 250, true);
         ObjectNode graphT1 = dash.newGraph(topicsRow, "Input / Sec", 5, false).put("fill", 4).put("stack", false);
         graphT1.replace("y_formats", dash.newArray("bytes", "short"));
-        graphT1.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", true));
+        graphT1.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", false));
         dash.newTarget(graphT1, "$tag_topic", "SELECT sum(\"OneMinuteRate\") FROM \"BytesInPerSec\" " +
                 "WHERE \"name\" = '" + name + "' AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
                 "GROUP BY time(" + interval_s + "s), \"topic\" fill(null)");
 
         ObjectNode graphT2 = dash.newGraph(topicsRow, "Failed Fetch Requests / Sec", 2, false).put("fill", 4).put("stack", false);
-        graphT2.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", true));
+        graphT2.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", false));
         dash.newTarget(graphT2, "$tag_topic", "SELECT sum(\"OneMinuteRate\") FROM \"FailedFetchRequestsPerSec\" " +
                 "WHERE \"name\" = '" + name + "' AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
                 "GROUP BY time(" + interval_s + "s), \"topic\" fill(null)");
 
         ObjectNode graphT3 = dash.newGraph(topicsRow, "Output / Sec", 5, false).put("fill", 4).put("stack", false);
         graphT3.replace("y_formats", dash.newArray("bytes", "short"));
-        graphT3.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", true));
+        graphT3.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", false));
         dash.newTarget(graphT3, "$tag_topic", "SELECT sum(\"OneMinuteRate\") FROM \"BytesOutPerSec\" " +
                 "WHERE \"name\" = '" + name + "' AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
                 "GROUP BY time(" + interval_s + "s), \"topic\" fill(null)");
@@ -262,6 +262,8 @@ public class DiscoveryTool extends ZkClient implements Closeable {
                         "WHERE \"group\" = 'kafka.network' AND \"name\" = '" + name + "' AND $timeFilter " +
                         "GROUP BY time(" + interval_s + "s)")
                 .put("decimals", 1)
+                .put("valueName", "avg")
+                .put("valueFontSize", "35%")
                 .put("format", "short")
                 .replace("sparkline", dash.newObject().put("show", true).put("full", false));
 
