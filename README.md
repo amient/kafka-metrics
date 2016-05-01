@@ -166,6 +166,10 @@ On the Kafka Metrics instance:
         --dashboard-path "./instance/.data/grafana/dashboards" \
         --influxdb "http://root:root@localhost:8086" | ./influxdb-loader/build/scripts/influxdb-loader
 
+### Example dashboard generated and configured for a cluster of 3 brokers
+
+![overview](doc/discovery-example-3-brokers.png)
+
 <a name="usage-loader">
 ## InfluxDB Loader Usage
 </a>
