@@ -112,10 +112,10 @@ and then run the following command:
 
     ./gradlew -Phostname=localhost :instance:install
 
-Installing Grafana and the front-end tool s it requires may the most tricky part of the setup and if you were successful
- yu should see an empty Grafana UI at `http://localhost:3000` - under Data Sources tab there should be one item 
- named 'Kafka Metrics InfluxDB'. The next command will discover all the brokers and topics  by looking into the zookeeper 
- so make sure you replace `<CLUSTER-SEED-HOST>` with one of your kafka brokers's host name:
+Installing Grafana and the front-end tools it requires may the most tricky part of the setup and if you were successful
+ you should see an empty Grafana UI at `http://localhost:3000` - under Data Sources tab there should also be one item 
+ named 'Kafka Metrics InfluxDB'. The next command will discover all the brokers and topics by looking into the zookeeper 
+ so make sure you replace `<CLUSTER-SEED-HOST>` with a host name of one of your Kafka brokers:
 
     ./discovery/build/scripts/discovery --zookeeper "<CLUSTER-SEED-HOST>:2181" --dashboard "my-kafka-cluster" \
         --dashboard-path $PWD/instance/.data/grafana/dashboards --interval 25 \ 
