@@ -35,9 +35,10 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 
-public class DiscoveryTool {
+public class DiscoveryTool extends ZkClient implements Closeable {
 
-//    private static int INTERVAL_S = 10;
+    private static final String DEFAULT_DATASOURCE = "Kafka Metrics InfluxDB";
+    private static final String DEFAULT_DATABASE = "metrics";
 
     public static void main(String[] args) throws IOException {
 
@@ -50,8 +51,8 @@ public class DiscoveryTool {
         OptionSpec<String> topic = parser.accepts("topic", "Name of the metrics topic to consume measurements from").withRequiredArg();
         OptionSpec<String> influxdb = parser.accepts("influxdb", "InfluxDB connect URL (including user and password)").withRequiredArg();
         OptionSpec<String> interval = parser.accepts("interval", "JMX scanning interval in seconds").withRequiredArg().defaultsTo("10");
-        //TODO --producer-bootstrap for truly non-intrusive agent deployment
-        //TODO --influxdb-database
+        //TODO --influxdb-database (DEFAULT_DATABASE)
+        //TODO --dashboard-datasource (DEFAULT_DATASOURCE)
 
         if (args.length == 0 || args[0] == "-h" || args[0] == "--help") {
             parser.printHelpOn(System.err);
@@ -62,14 +63,15 @@ public class DiscoveryTool {
 
         try {
 
-            DiscoveryTool tool = new DiscoveryTool();
+            DiscoveryTool tool = new DiscoveryTool(opts.valueOf(zookeeper));
 
             try {
-                List<Broker> brokers = tool.discoverKafkaCluster(opts.valueOf(zookeeper));
+                List<String> topics = tool.getKafkaTopics();
+                List<Broker> brokers = tool.getKafkaBrokers();
                 int interval_s = Integer.parseInt(opts.valueOf(interval));
 
                 if (opts.has(dashboard) && opts.has(dashboardPath)) {
-                    tool.generateDashboard(opts.valueOf(dashboard), brokers, "Kafka Metrics InfluxDB",
+                    tool.generateDashboard(opts.valueOf(dashboard), brokers, topics, DEFAULT_DATASOURCE,
                        opts.valueOf(dashboardPath), interval_s)
                             .save();
                 }
@@ -78,6 +80,8 @@ public class DiscoveryTool {
                     //producer/reporter settings
                     System.out.println("kafka.metrics.topic=" + opts.valueOf(topic));
                     System.out.println("kafka.metrics.polling.interval=" + interval_s + "s");
+                    //TODO --producer-bootstrap for truly non-intrusive agent deployment,
+                    // i.e. when producing to a different cluster from the one being discovered
                     System.out.println("kafka.metrics.bootstrap.servers=" + brokers.get(0).hostPort());
                     //consumer settings
                     System.out.println("consumer.topic=" + opts.valueOf(topic));
@@ -91,7 +95,7 @@ public class DiscoveryTool {
 
                 if (opts.has(influxdb)) {
                     URL url = new URL(opts.valueOf(influxdb));
-                    System.out.println("influxdb.database=metrics"); //TODO configure this
+                    System.out.println("influxdb.database=" + DEFAULT_DATABASE);
                     System.out.println("influxdb.url=" + url.toString());
                     if (url.getUserInfo() != null) {
                         System.out.println("influxdb.username=" + url.getUserInfo().split(":")[0]);
@@ -105,6 +109,8 @@ public class DiscoveryTool {
             } catch (IOException e) {
                 e.printStackTrace();
                 System.exit(3);
+            } finally {
+                tool.close();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -113,11 +119,9 @@ public class DiscoveryTool {
 
     }
 
-    public List<Broker> discoverKafkaCluster(String zkConnect) throws IOException {
-        try (BrokerInfoClient client = new BrokerInfoClient(zkConnect)) {
-            return client.getBrokers();
-        }
-    }
+    private final String brokersZkPath = "/brokers/ids";
+
+    private final String topicsZkPath = "/brokers/topics";
 
     public Properties generateScannerConfig(List<Broker> brokers, String name, int interval_s) throws IOException {
         Properties scannerProps = new Properties();
@@ -133,54 +137,54 @@ public class DiscoveryTool {
         return scannerProps;
     }
 
-    private class BrokerInfoClient extends ZkClient implements Closeable {
-        private final String brokersZkPath = "/brokers/ids";
+    public DiscoveryTool(String serverstring) {
+        super(serverstring, 30000, 30000, new ZkSerializer() {
+            private final ObjectMapper mapper = new ObjectMapper();
 
-        public BrokerInfoClient(String serverstring) {
-            super(serverstring, 30000, 30000, new ZkSerializer() {
-                private final ObjectMapper mapper = new ObjectMapper();
-
-                @Override
-                public byte[] serialize(Object o) throws ZkMarshallingError {
-                    throw new ZkMarshallingError("This is a read-only zkClient");
-                }
-
-                @Override
-                public Object deserialize(byte[] bytes) throws ZkMarshallingError {
-                    JsonNode json = null;
-                    try {
-                        return mapper.readTree(bytes);
-                    } catch (IOException e) {
-                        throw new ZkMarshallingError(e);
-                    }
-                }
-            });
-        }
-
-        public List<Broker> getBrokers() throws IOException {
-            List<Broker> result = new LinkedList<>();
-            for (String brokerId : getChildren(brokersZkPath)) {
-                result.add(getBroker(brokerId));
+            @Override
+            public byte[] serialize(Object o) throws ZkMarshallingError {
+                throw new ZkMarshallingError("This is a read-only zkClient");
             }
-            return result;
-        }
 
-        public Broker getFirstBroker() {
-            return getBroker(getChildren(brokersZkPath).get(0));
-        }
-
-        public Broker getBroker(String brokerId) {
-            JsonNode json = readData(brokersZkPath + "/" + brokerId);
-            return new Broker(
-                    brokerId,
-                    json.get("host").asText(),
-                    json.get("port").asInt(),
-                    json.get("jmx_port").asInt()
-            );
-        }
+            @Override
+            public Object deserialize(byte[] bytes) throws ZkMarshallingError {
+                try {
+                    return mapper.readTree(bytes);
+                } catch (IOException e) {
+                    throw new ZkMarshallingError(e);
+                }
+            }
+        });
     }
 
-    public Dashboard generateDashboard(String name, List<Broker> brokers, String dataSource, String path, int interval_s) {
+    public List<String> getKafkaTopics() {
+        List<String> result = new LinkedList<>();
+        for (String topic : getChildren(topicsZkPath)) {
+            result.add(topic);
+        }
+        return result;
+    }
+
+    public List<Broker> getKafkaBrokers() throws IOException {
+        List<Broker> result = new LinkedList<>();
+        for (String brokerId : getChildren(brokersZkPath)) {
+            result.add(getBroker(brokerId));
+        }
+        return result;
+    }
+
+    public Broker getBroker(String brokerId) {
+        JsonNode json = readData(brokersZkPath + "/" + brokerId);
+        return new Broker(
+                brokerId,
+                json.get("host").asText(),
+                json.get("port").asInt(),
+                json.get("jmx_port").asInt()
+        );
+    }
+
+    public Dashboard generateDashboard(
+            String name, List<Broker> brokers, List<String> topics, String dataSource, String path, int interval_s) {
         Dashboard dash = new Dashboard(name, dataSource, path + "/" + name + ".json");
 
         ArrayNode clusterRow = dash.newRow(String.format("CLUSTER METRICS FOR %d broker(s)", brokers.size()), 172);
@@ -238,11 +242,17 @@ public class DiscoveryTool {
                 .replace("sparkline", dash.newObject().put("show", true).put("full", false));
 
         for (Broker broker : brokers) {
-            //TODO Memory Usage Graph
+            //extra row for each broker
             ArrayNode brokerRow = dash.newRow(String.format("Kafka Broker ID %s @ %s", broker.id, broker.hostPort()), 250);
-            ObjectNode graph6 = dash.newGraph(brokerRow, "Memory", 4, true);
 
-            //Log Flush Time Graph
+            //Purgatory graph
+            ObjectNode graph6 = dash.newGraph(brokerRow, "Num.delayed requests", 4, true);
+            dash.newTarget(graph6, "$col",
+                    "SELECT max(\"Value\"), median(\"Value\"), min(\"Value\") FROM \"NumDelayedRequests\" " +
+                    "WHERE \"name\" = 'stag-kafka-cluster' AND \"service\" = 'broker-1' AND $timeFilter " +
+                    "GROUP BY time($interval) fill(null)");
+
+            //Log Flush Time graph
             ObjectNode graph7 = dash.newGraph(brokerRow, "Log Flush Time (mean)", 4, false)
                     .put("linewidth",1).put("points", true).put("pointradius", 1).put("fill", 0);
             graph7.replace("y_formats", dash.newArray("ms", "short"));
@@ -267,11 +277,24 @@ public class DiscoveryTool {
                     "AND \"name\" = '" + name + "' AND $timeFilter " +
                     "GROUP BY time(30s)");
 
-            //TODO Throughput Graph
-            dash.newGraph(brokerRow, "Throughput", 4, true);
+            //Combined Throughput Graph
+            ObjectNode graph8 = dash.newGraph(brokerRow, "Throughput", 4, true)
+                    .put("linewidth",1).put("fill", 6).put("y-axis", false);
+            graph8.replace("y_formats", dash.newArray("bytes", "short"));
+            dash.newTarget(graph8, "Output",
+                    "SELECT mean(\"FiveMinuteRate\") * -1 FROM \"BytesOutPerSec\" " +
+                    "WHERE \"name\" = 'stag-kafka-cluster' AND \"service\" = 'broker-1' AND $timeFilter " +
+                    "GROUP BY time($interval) fill(null)");
+            dash.newTarget(graph8, "Input",
+                    "SELECT mean(\"FiveMinuteRate\") FROM \"BytesInPerSec\" " +
+                    "WHERE \"name\" = 'stag-kafka-cluster' AND \"service\" = 'broker-1' AND $timeFilter " +
+                    "GROUP BY time($interval) fill(null)");
         }
 
         //TODO for(String topic: topics) { ... } //maybe use a variable template for either '*' or '<TOPIC>'
+        for (String topic: topics) {
+            ArrayNode brokerRow = dash.newRow(String.format("Kafka Topic `%s`", topic), 150);
+        }
         return dash;
     }
 }
