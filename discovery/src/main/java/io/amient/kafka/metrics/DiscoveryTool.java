@@ -45,12 +45,20 @@ public class DiscoveryTool extends ZkClient implements Closeable {
         OptionParser parser = new OptionParser();
 
         parser.accepts("help", "Print usage help");
-        OptionSpec<String> zookeeper = parser.accepts("zookeeper", "Address of the seed zookeeper server").withRequiredArg().required();
-        OptionSpec<String> dashboard = parser.accepts("dashboard", "Grafana dashboard name to be used in all generated configs").withRequiredArg().required();
-        OptionSpec<String> dashboardPath = parser.accepts("dashboard-path", "Grafana location, i.e. `./instance/.data/grafana/dashboards`").withRequiredArg();
-        OptionSpec<String> topic = parser.accepts("topic", "Name of the metrics topic to consume measurements from").withRequiredArg();
-        OptionSpec<String> influxdb = parser.accepts("influxdb", "InfluxDB connect URL (including user and password)").withRequiredArg();
-        OptionSpec<String> interval = parser.accepts("interval", "JMX scanning interval in seconds").withRequiredArg().defaultsTo("10");
+        OptionSpec<String> zookeeper = parser.accepts("zookeeper", "Address of the seed zookeeper server")
+                .withRequiredArg().required();
+        OptionSpec<String> dashboard = parser
+                .accepts("dashboard", "Grafana dashboard name to be used in all generated configs")
+                .withRequiredArg().required();
+        OptionSpec<String> dashboardPath = parser
+                .accepts("dashboard-path", "Grafana location, i.e. `./instance/.data/grafana/dashboards`")
+                .withRequiredArg();
+        OptionSpec<String> topic = parser.accepts("topic", "Name of the metrics topic to consume measurements from")
+                .withRequiredArg();
+        OptionSpec<String> influxdb = parser.accepts("influxdb", "InfluxDB connect URL (including user and password)")
+                .withRequiredArg();
+        OptionSpec<String> interval = parser.accepts("interval", "JMX scanning interval in seconds")
+                .withRequiredArg().defaultsTo("10");
         //TODO --influxdb-database (DEFAULT_DATABASE)
         //TODO --dashboard-datasource (DEFAULT_DATASOURCE)
 
@@ -127,7 +135,7 @@ public class DiscoveryTool extends ZkClient implements Closeable {
         Properties scannerProps = new Properties();
         for (Broker broker : brokers) {
             Integer section = Integer.parseInt(broker.id) + 1;
-            scannerProps.put(String.format("jmx.%d.address", section), String.format("%s:%d", broker.host, broker.jmxPort));
+            scannerProps.put(String.format("jmx.%d.address", section), broker.host + ":" + broker.jmxPort);
             scannerProps.put(String.format("jmx.%d.query.scope", section), "kafka.*:*");
             scannerProps.put(String.format("jmx.%d.query.interval.s", section), String.valueOf(interval_s));
             scannerProps.put(String.format("jmx.%d.tag.host", section), broker.host);
@@ -190,20 +198,21 @@ public class DiscoveryTool extends ZkClient implements Closeable {
         ///////////// ROW 1 - TOPIC METRICS
         dash.newVariable("topic", true, topics.toArray(new String[topics.size()]));
         ArrayNode topicsRow = dash.newRow("TOPIC METRICS FOR `$topic`", 250, true);
-        ObjectNode graphT1 = dash.newGraph(topicsRow, "Input / Sec", 5, false).put("fill", 4).put("stack", false);
+        ObjectNode graphT1 = dash.newGraph(topicsRow, "Input / Sec", 5, false).put("fill", 2).put("stack", false);
         graphT1.replace("y_formats", dash.newArray("bytes", "short"));
         graphT1.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", false));
         dash.newTarget(graphT1, "$tag_topic", "SELECT sum(\"OneMinuteRate\") FROM \"BytesInPerSec\" " +
                 "WHERE \"name\" = '" + name + "' AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
                 "GROUP BY time(" + interval_s + "s), \"topic\" fill(null)");
 
-        ObjectNode graphT2 = dash.newGraph(topicsRow, "Failed Fetch Requests / Sec", 2, false).put("fill", 4).put("stack", false);
+        ObjectNode graphT2 = dash.newGraph(topicsRow, "Failed Fetch Requests / Sec", 2, false)
+                .put("fill", 4).put("stack", false);
         graphT2.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", false));
         dash.newTarget(graphT2, "$tag_topic", "SELECT sum(\"OneMinuteRate\") FROM \"FailedFetchRequestsPerSec\" " +
                 "WHERE \"name\" = '" + name + "' AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
                 "GROUP BY time(" + interval_s + "s), \"topic\" fill(null)");
 
-        ObjectNode graphT3 = dash.newGraph(topicsRow, "Output / Sec", 5, false).put("fill", 4).put("stack", false);
+        ObjectNode graphT3 = dash.newGraph(topicsRow, "Output / Sec", 5, false).put("fill", 2).put("stack", false);
         graphT3.replace("y_formats", dash.newArray("bytes", "short"));
         graphT3.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", false));
         dash.newTarget(graphT3, "$tag_topic", "SELECT sum(\"OneMinuteRate\") FROM \"BytesOutPerSec\" " +
@@ -243,18 +252,23 @@ public class DiscoveryTool extends ZkClient implements Closeable {
                 "WHERE \"group\" = 'kafka.log' AND \"name\" = '" + name + "' AND $timeFilter " +
                 "GROUP BY time(1m), \"service\"");
 
-        ObjectNode graph2 = dash.newGraph(clusterRow, "Input / Sec", 2, false).put("fill", 2).put("stack", true);
+        ObjectNode graph2 = dash.newGraph(clusterRow, "Input / Sec", 2, false)
+                .put("fill", 2).put("stack", true);
         graph2.replace("y_formats", dash.newArray("bytes", "short"));
+        graph2.replace("tooltip", dash.newObject().put("value_type", "individual").put("shared", true));
         dash.get(graph2, "grid").put("leftMin", 0);
         dash.newTarget(graph2, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"BytesInPerSec\" " +
-                "WHERE \"group\" = 'kafka.server' AND \"name\" = '" + name + "' AND $timeFilter " +
+                "WHERE \"group\" = 'kafka.server' AND \"topic\" =~ /^$topic$/ AND \"name\" = '" + name + "' " +
+                "AND $timeFilter " +
                 "GROUP BY time(" + interval_s + "s), \"service\"");
 
         ObjectNode graph3 = dash.newGraph(clusterRow, "Output / Sec", 2, false).put("fill", 2).put("stack", true);
         graph3.replace("y_formats", dash.newArray("bytes", "short"));
+        graph3.replace("tooltip", dash.newObject().put("value_type", "individual").put("shared", true));
         dash.get(graph3, "grid").put("leftMin", 0);
         dash.newTarget(graph3, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"BytesOutPerSec\" " +
-                "WHERE \"group\" = 'kafka.server' AND \"name\" = '" + name + "' AND $timeFilter " +
+                "WHERE \"group\" = 'kafka.server' AND \"topic\" =~ /^$topic$/ AND \"name\" = '" + name + "' " +
+                "AND $timeFilter " +
                 "GROUP BY time(" + interval_s + "s), \"service\"");
 
         dash.newStat(clusterRow, "Requests/Sec", 1,
@@ -271,7 +285,8 @@ public class DiscoveryTool extends ZkClient implements Closeable {
         ///////////// ROW (2 + b) - BROKER-LEVEL METRICS
         for (Broker broker : brokers) {
             //extra row for each broker
-            ArrayNode brokerRow = dash.newRow(String.format("Kafka Broker ID %s @ %s", broker.id, broker.hostPort()), 250, false);
+            ArrayNode brokerRow = dash.newRow(
+                    String.format("Kafka Broker ID %s @ %s", broker.id, broker.hostPort()), 250, false);
 
             //Purgatory graph
             ObjectNode graph6 = dash.newGraph(brokerRow, "Num.delayed requests", 4, true);
@@ -288,18 +303,18 @@ public class DiscoveryTool extends ZkClient implements Closeable {
                     .put("leftLogBase", 2)
                     .put("threshold1", 100).put("threshold1Color", "rgba(236, 118, 21, 0.21)")
                     .put("threshold2", 250).put("threshold2Color", "rgba(234, 112, 112, 0.22)");
-            dash.newTarget(graph7, "$col", "SELECT mean(\"999thPercentile\") as \"999thPercentile\" " +
+            dash.newTarget(graph7, "$col", "SELECT sum(\"999thPercentile\") as \"999thPercentile\" " +
                     "FROM \"LogFlushRateAndTimeMs\" " +
                     "WHERE \"group\" = 'kafka.log' AND \"service\" = '" +String.format("broker-%s", broker.id)+"'" +
                     "AND \"name\" = '" + name + "' AND $timeFilter " +
                     "GROUP BY time(30s)");
-            dash.newTarget(graph7, "$col", "SELECT mean(\"99thPercentile\") as \"99thPercentile\" " +
+            dash.newTarget(graph7, "$col", "SELECT sum(\"99thPercentile\") as \"99thPercentile\" " +
                     "FROM \"LogFlushRateAndTimeMs\" " +
                     "WHERE \"group\" = 'kafka.log' AND \"service\" = '" +String.format("broker-%s", broker.id)+"'" +
                     "AND \"name\" = '" + name + "' AND $timeFilter " +
                     "GROUP BY time(30s)");
 
-            dash.newTarget(graph7, "$col", "SELECT mean(\"95thPercentile\") as \"95thPercentile\" " +
+            dash.newTarget(graph7, "$col", "SELECT sum(\"95thPercentile\") as \"95thPercentile\" " +
                     "FROM \"LogFlushRateAndTimeMs\" " +
                     "WHERE \"group\" = 'kafka.log' AND \"service\" = '" +String.format("broker-%s", broker.id)+"'" +
                     "AND \"name\" = '" + name + "' AND $timeFilter " +
@@ -309,13 +324,16 @@ public class DiscoveryTool extends ZkClient implements Closeable {
             ObjectNode graph8 = dash.newGraph(brokerRow, "Throughput", 4, true)
                     .put("linewidth",1).put("fill", 6).put("y-axis", false);
             graph8.replace("y_formats", dash.newArray("bytes", "short"));
+            graph8.set("aliasColors", dash.newObject().put("Input", "#BF1B00").put("Output", "#508642"));
             dash.newTarget(graph8, "Output",
-                    "SELECT mean(\"FiveMinuteRate\") * -1 FROM \"BytesOutPerSec\" " +
-                    "WHERE \"name\" = 'stag-kafka-cluster' AND \"service\" = 'broker-1' AND $timeFilter " +
+                    "SELECT sum(\"FiveMinuteRate\") * -1 FROM \"BytesOutPerSec\" " +
+                    "WHERE \"name\" = 'stag-kafka-cluster' AND \"service\" = '" +String.format("broker-%s", broker.id)+"' " +
+                            "AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
                     "GROUP BY time($interval) fill(null)");
             dash.newTarget(graph8, "Input",
-                    "SELECT mean(\"FiveMinuteRate\") FROM \"BytesInPerSec\" " +
-                    "WHERE \"name\" = 'stag-kafka-cluster' AND \"service\" = 'broker-1' AND $timeFilter " +
+                    "SELECT sum(\"FiveMinuteRate\") FROM \"BytesInPerSec\" " +
+                    "WHERE \"name\" = 'stag-kafka-cluster' AND \"service\" = '"+String.format("broker-%s", broker.id)+"-1' " +
+                            "AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
                     "GROUP BY time($interval) fill(null)");
         }
 
