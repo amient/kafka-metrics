@@ -257,7 +257,7 @@ public class DiscoveryTool extends ZkClient implements Closeable {
         graph2.replace("y_formats", dash.newArray("bytes", "short"));
         graph2.replace("tooltip", dash.newObject().put("value_type", "individual").put("shared", true));
         dash.get(graph2, "grid").put("leftMin", 0);
-        dash.newTarget(graph2, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"BytesInPerSec\" " +
+        dash.newTarget(graph2, "$tag_service", "SELECT sum(\"OneMinuteRate\") FROM \"BytesInPerSec\" " +
                 "WHERE \"group\" = 'kafka.server' AND \"topic\" =~ /^$topic$/ AND \"name\" = '" + name + "' " +
                 "AND $timeFilter " +
                 "GROUP BY time(" + interval_s + "s), \"service\"");
@@ -266,7 +266,7 @@ public class DiscoveryTool extends ZkClient implements Closeable {
         graph3.replace("y_formats", dash.newArray("bytes", "short"));
         graph3.replace("tooltip", dash.newObject().put("value_type", "individual").put("shared", true));
         dash.get(graph3, "grid").put("leftMin", 0);
-        dash.newTarget(graph3, "$tag_service", "SELECT mean(\"OneMinuteRate\") FROM \"BytesOutPerSec\" " +
+        dash.newTarget(graph3, "$tag_service", "SELECT sum(\"OneMinuteRate\") FROM \"BytesOutPerSec\" " +
                 "WHERE \"group\" = 'kafka.server' AND \"topic\" =~ /^$topic$/ AND \"name\" = '" + name + "' " +
                 "AND $timeFilter " +
                 "GROUP BY time(" + interval_s + "s), \"service\"");
@@ -326,14 +326,14 @@ public class DiscoveryTool extends ZkClient implements Closeable {
             graph8.replace("y_formats", dash.newArray("bytes", "short"));
             graph8.set("aliasColors", dash.newObject().put("Input", "#BF1B00").put("Output", "#508642"));
             dash.newTarget(graph8, "Output",
-                    "SELECT sum(\"FiveMinuteRate\") * -1 FROM \"BytesOutPerSec\" " +
-                    "WHERE \"name\" = 'stag-kafka-cluster' AND \"service\" = '" +String.format("broker-%s", broker.id)+"' " +
-                            "AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
+                    "SELECT sum(\"OneMinuteRate\") * -1 FROM \"BytesOutPerSec\" " +
+                    "WHERE \"name\" = 'stag-kafka-cluster' AND \"topic\" =~ /^$topic$/ " +
+                            "AND \"service\" = '" +String.format("broker-%s", broker.id)+"' AND $timeFilter " +
                     "GROUP BY time($interval) fill(null)");
             dash.newTarget(graph8, "Input",
-                    "SELECT sum(\"FiveMinuteRate\") FROM \"BytesInPerSec\" " +
-                    "WHERE \"name\" = 'stag-kafka-cluster' AND \"service\" = '"+String.format("broker-%s", broker.id)+"-1' " +
-                            "AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
+                    "SELECT sum(\"OneMinuteRate\") FROM \"BytesInPerSec\" " +
+                    "WHERE \"name\" = 'stag-kafka-cluster' AND \"topic\" =~ /^$topic$/ " +
+                            "AND \"service\" = '"+String.format("broker-%s", broker.id)+"' AND $timeFilter " +
                     "GROUP BY time($interval) fill(null)");
         }
 
