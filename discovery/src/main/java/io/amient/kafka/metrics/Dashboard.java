@@ -203,7 +203,7 @@ public class Dashboard {
         ArrayNode optionsArray = mapper.createArrayNode();
         variable.set("options", optionsArray);
         if (includeAll) {
-            variable.put("allValue", ".*");
+            variable.put("allValue", ".+");
             optionsArray.addObject().put("text", "All").put("value", "$__all").put("selected", true);
         }
         for(String option: options) {
