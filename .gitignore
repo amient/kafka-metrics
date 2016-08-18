@@ -2,7 +2,8 @@
 .idea
 .gradle
 *.iml
-build
+build/
+classes/
 /instance/.install
 /instance/.download
 /instance/.data
