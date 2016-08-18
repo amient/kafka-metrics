@@ -1,1 +1,1 @@
-include ':core', ':influxdb-loader', ':discovery', ':metrics-reporter', ':metrics-agent', ':instance'
+include ':core', ':influxdb-loader', ':discovery', ':metrics-reporter', ':metrics-agent', ':instance', ':metrics-connect'

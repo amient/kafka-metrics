@@ -19,7 +19,8 @@
 
 package io.amient.kafka.metrics;
 
-import kafka.tools.MessageFormatter;
+import kafka.common.MessageFormatter;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.errors.SerializationException;
 
 import java.io.ByteArrayOutputStream;
@@ -41,9 +42,9 @@ public class MeasurementFormatter implements MessageFormatter {
     }
 
     @Override
-    public void writeTo(byte[] key, byte[] value, PrintStream output) {
+    public void writeTo(ConsumerRecord<byte[], byte[]> consumerRecord, PrintStream output) {
         try {
-            for(MeasurementV1 measurement: decoder.fromBytes(value)) {
+            for(MeasurementV1 measurement: decoder.fromBytes(consumerRecord.value())) {
                 writeTo(measurement, output);
             }
         } catch (SerializationException e) {

@@ -271,6 +271,120 @@ The third configuration file is a sink connector that loads the measurements to 
     timezone=Etc/GMT+1
     ...
 
+<a name="usage-connect">
+## Metrics Connect Usage
+</a>
+
+This module builds on Kafka Connect framework. The connector is jar that needs to be first built: 
+
+```
+./gradlew :metrics-connect:build
+```
+
+The command above generates a jar that needs to be in the classpath of Kafka Connect which can be achieved
+by copying the jar into `libs` directory of the kafka installation:
+
+```
+cp ./metrics-connect/build/lib/metrics-connect-*.jar $KAFKA_HOME/libs
+```
+
+Now you can launch connect instance with the following example configurations:
+
+```
+"$KAFKA_HOME/bin/connect-standalone.sh" "metrics-connect.properties" "influxdb-sink.properties" "hdfs-sink.properties"
+```
+
+First, `metrics-connect.properties` is the connect worker configuration which doesn't specify any connectors
+but says that all connectors will use MeasurementConverter to deserialize measurement objects.
+
+```
+bootstrap.servers=localhost:9092
+key.converter=org.apache.kafka.connect.storage.StringConverter
+value.converter=io.amient.kafka.metrics.MeasurementConverter
+...
+```
+
+The second configuration file is a sink connector that loads the measurements to InfluxDB, for example:
+
+```
+name=metrics-influxdb-sink
+connector.class=io.amient.kafka.metrics.InfluxDbSinkConnector
+topics=metric
+...
+```
+
+The thrid configuration file is a sink connector that loads the measurements to hdfs, for example as parquet files:
+
+```
+name=metrics-hdfs-sink
+topics=metrics
+connector.class=io.confluent.connect.hdfs.HdfsSinkConnector
+format.class=io.confluent.connect.hdfs.parquet.ParquetFormat
+partitioner.class=io.confluent.connect.hdfs.partitioner.TimeBasedPartitioner
+path.format='d'=YYYY'-'MM'-'dd/
+partition.duration.ms=86400000
+locale=en
+timezone=Etc/GMT+1
+...
+```
+
+<a name="usage-connect">
+## Metrics Connect Usage
+</a>
+
+This module builds on Kafka Connect framework. The connector is jar that needs to be first built: 
+
+```
+./gradlew :metrics-connect:build
+```
+
+The command above generates a jar that needs to be in the classpath of Kafka Connect which can be achieved
+by copying the jar into `libs` directory of the kafka installation:
+
+```
+cp ./metrics-connect/build/lib/metrics-connect-*.jar $KAFKA_HOME/libs
+```
+
+Now you can launch connect instance with the following example configurations:
+
+```
+"$KAFKA_HOME/bin/connect-standalone.sh" "metrics-connect.properties" "influxdb-sink.properties" "hdfs-sink.properties"
+```
+
+First, `metrics-connect.properties` is the connect worker configuration which doesn't specify any connectors
+but says that all connectors will use MeasurementConverter to deserialize measurement objects.
+
+```
+bootstrap.servers=localhost:9092
+key.converter=org.apache.kafka.connect.storage.StringConverter
+value.converter=io.amient.kafka.metrics.MeasurementConverter
+...
+```
+
+The second configuration file is a sink connector that loads the measurements to InfluxDB, for example:
+
+```
+name=metrics-influxdb-sink
+connector.class=io.amient.kafka.metrics.InfluxDbSinkConnector
+topics=metric
+...
+```
+
+The thrid configuration file is a sink connector that loads the measurements to hdfs, for example as parquet files:
+
+```
+name=metrics-hdfs-sink
+topics=metrics
+connector.class=io.confluent.connect.hdfs.HdfsSinkConnector
+format.class=io.confluent.connect.hdfs.parquet.ParquetFormat
+partitioner.class=io.confluent.connect.hdfs.partitioner.TimeBasedPartitioner
+path.format='d'=YYYY'-'MM'-'dd/
+partition.duration.ms=86400000
+locale=en
+timezone=Etc/GMT+1
+...
+```
+
 <a name="metrics-agent">
 ### Metrics Agent Usage
 </a>
