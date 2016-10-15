@@ -65,6 +65,7 @@ public class ProducerPublisher implements MeasurementPublisher {
             put("value.serializer", io.amient.kafka.metrics.MeasurementSerializer.class);
             put("client.id", DEFAULT_CLIENT_ID);
         }});
+        addProducerShutdownHook();
     }
 
     public void publish(MeasurementV1 m) {
@@ -86,8 +87,20 @@ public class ProducerPublisher implements MeasurementPublisher {
 
     @Override
     public void close() {
-        producer.close();
+    	if (producer != null) {
+            close();
+      	}
     }
+    
+    private void addProducerShutdownHook(){
+    	   Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+
+    	            @Override
+    	            public void run() {
+    	                  close();
+    	            }
+    	        }));
+     }
 
     public static class IntegerSerializer implements Serializer<Integer> {
         @Override
