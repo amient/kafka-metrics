@@ -44,6 +44,7 @@ public class ConsumerMetrics {
     static final String DEFAULT_CLIENT_ID = "kafka-metrics";
 
     private final ExecutorService executor;
+    private ConsumerConnector consumer = null;
 
     public ConsumerMetrics(Properties props) {
         String topic = props.getProperty(COFNIG_CONSUMER_TOPIC, "metrics");
@@ -68,9 +69,11 @@ public class ConsumerMetrics {
         }
 
         VerifiableProperties config = new VerifiableProperties(consumerProps);
-        ConsumerConnector consumer = kafka.consumer.Consumer.createJavaConsumerConnector(
+        consumer = kafka.consumer.Consumer.createJavaConsumerConnector(
                 new ConsumerConfig(config.props()));
 
+        addShutdownHook();
+        
         Map<String, Integer> topicCountMap = new HashMap<String, Integer>();
         topicCountMap.put(topic, new Integer(numThreads));
         Map<String, List<KafkaStream<String, List<MeasurementV1>>>> consumerMap
@@ -81,9 +84,29 @@ public class ConsumerMetrics {
         for (final KafkaStream<String, List<MeasurementV1>> stream : streams) {
             executor.submit(new Task(new InfluxDbPublisher(props), stream));
         }
-        executor.shutdown();
+        
+        shutdown();
 
     }
+
+	private void shutdown() {
+		if (executor != null) {
+			executor.shutdown();
+		}
+		if (consumer != null) {
+            consumer.shutdown();
+		}
+	}
+	
+    private void addShutdownHook() {
+ 	   Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+ 	            @Override
+ 	            public void run() {
+ 	                shutdown();
+ 	            }
+ 	        }));
+  }
+    
 
     public boolean isTerminated() {
         return executor.isTerminated();
