@@ -14,7 +14,6 @@ multiple systems, with some out-of-the-box features for data streams pipelines b
 	- [Multi-Enviornment Scenario](#scenario2)
 2. [Quick Start](#quick-start)
 3. [Modules Reference](#modules-reference)
- 	- [Bundled Instance: InfluxDB, Grafana](#usage-instance)
  	- [Cluster Discovery Tool](#usage-discovery)
  	- [InfluxDB Loader](#usage-loader) 
     - [Metrics Connect](#usage-connect)
