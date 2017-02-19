@@ -1,0 +1,30 @@
+version: '2'
+
+services:
+
+  influxdb:
+    image: influxdb
+    environment:
+      INFLUXDB_HTTP_ENABLED: "true"
+      INFLUXDB_HTTP_AUTH_ENABLED: "false"
+    volumes:
+      - ./.data/influxdb:/var/lib/influxdb
+    ports:
+      - "8083:8083"
+      - "8086:8086"
+
+  grafana:
+    image: grafana/grafana
+    environment:
+      GF_LOG_MODE: "file"
+      GF_PATHS_LOGS: "/logs"
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+      GF_DASHBOARDS_JSON_ENABLED: "true"
+      GF_DASHBOARDS_JSON_PATH: "/dashboards"
+      GF_PATHS_DATA: "/data"
+    volumes:
+      - ./.data/grafana/dashboards:/dashboards
+      - ./.data/grafana/db:/data
+      - ./.data/grafana/logs:/logs
+    ports:
+      - "3000:3000"
