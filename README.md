@@ -106,14 +106,12 @@ First we need to build the project from source which requires at least `java 1.7
 
     ./gradlew build 
 
-Next we install the default instance of InfluxDB and Grafana which requires `go` language (golang) and some front-end tools, 
-namely `npm 2.5.0+` and `grunt v0.4.5+` - if you don't have these, install the appropriate packages for your platform 
-and then run the following command:
+There is a docker-compose.yml file that contains grafana, influxdb and kapactior images and a small script
+that starts and integrates them together:
 
-    ./gradlew -Phostname=localhost :instance:install
+    ./docker-instance.sh
 
-Installing Grafana and the front-end tools it requires may the most tricky part of the setup and if you were successful
- you should see an empty Grafana UI at `http://localhost:3000` - under Data Sources tab there should also be one item 
+Grafana UI should be now exposed at `http://localhost:3000` - under Data Sources tab there should also be one item 
  named 'Kafka Metrics InfluxDB'. The next command will discover all the brokers and topics by looking into the zookeeper 
  so make sure you replace `<CLUSTER-SEED-HOST>` with a host name of one of your Kafka brokers:
 
@@ -132,34 +130,6 @@ For a cluster of 3 brokers it might look like this:
 <a name="modules-reference">
 ## Modules Reference
 </a>
-
-<a name="usage-instance">
-### Bundled Instance 
-</a>
-
-This module is just a set of installer and launcher scripts that manage local instances of InfluxDB and Grafana. 
-This module can be used with all the scenarios whether for testing on development machine or deployed on a production 
-host but doesn't have to be used if you have existing InfluxDB component running. 
-
-Bundled instance requires the following setup: `golang 1.4+`, `npm 2.5.0+` > `node 0.12.0+` > `grunt (v0.4.5)`
-
-Provided you have `npm` and `grunt` of the minimum versions above, the following command should install all components:
-
-    ./gradlew [-Phostname=<...>] :instance:install
-
-Optionally, if you want to access the instance from outside the localhost provide `-Phostname=..` property.
-To launch the instance execute the following script:
-
-    ./instance/build/bin/start-kafka-metrics-instance.sh <CONF_DIR> <LOG_DIR> [<GRAFANA_URL>]
-
-If the optional argument `GRAFANA_URL` is given then only InfluxDB will be started assuming Grafana is already running.
-An example local config is provided under `./instance/build/conf` which can be used as follows:
- 
-    ./instance/build/scripts/start-kafka-metrics-instance.sh $PWD/instance/build/conf $PWD/instance/.logs
-
-To stop the instance:
-
-    ./instance/build/scripts/stop-kafka-metrics-instance.sh [influxdb|grafana]
 
 <a name="usage-discovery">
 ### Cluster Discovery Tool
