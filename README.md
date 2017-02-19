@@ -111,11 +111,11 @@ that starts and integrates them together:
     ./docker-instance.sh
 
 Grafana UI should be now exposed at `http://localhost:3000` - under Data Sources tab there should also be one item 
- named 'Kafka Metrics InfluxDB'. The next command will discover all the brokers and topics by looking into the zookeeper 
- so make sure you replace `<CLUSTER-SEED-HOST>` with a host name of one of your Kafka brokers:
+ named 'Kafka Metrics InfluxDB'. The next command will discover all topics the brokers on a local kafka broker 
+ by looking into the zookeeper but you can replace the zookeeper connect string with your own:
 
-    ./discovery/build/scripts/discovery --zookeeper "<CLUSTER-SEED-HOST>:2181" --dashboard "my-kafka-cluster" \
-        --dashboard-path $PWD/.data/grafana/dashboards --interval 25 \ 
+    ./discovery/build/scripts/discovery --zookeeper "127.0.0.1:2181" --dashboard "my-kafka-cluster" \
+        --dashboard-path $PWD/.data/grafana/dashboards --interval 25 \
         --influxdb  "http://root:root@localhost:8086" | ./influxdb-loader/build/scripts/influxdb-loader
 
 The dashboard should be now accessible on this url:
