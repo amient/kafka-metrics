@@ -115,7 +115,7 @@ Grafana UI should be now exposed at `http://localhost:3000` - under Data Sources
  so make sure you replace `<CLUSTER-SEED-HOST>` with a host name of one of your Kafka brokers:
 
     ./discovery/build/scripts/discovery --zookeeper "<CLUSTER-SEED-HOST>:2181" --dashboard "my-kafka-cluster" \
-        --dashboard-path $PWD/instance/.data/grafana/dashboards --interval 25 \ 
+        --dashboard-path $PWD/.data/grafana/dashboards --interval 25 \ 
         --influxdb  "http://root:root@localhost:8086" | ./influxdb-loader/build/scripts/influxdb-loader
 
 The dashboard should be now accessible on this url:
@@ -146,11 +146,11 @@ or Metrics Agent. It is a Java Application and first has to be built with the fo
     ./discovery/build/scripts/discovery \
         --zookeeper "localhost:2181" \
         --dashboard "local-kafka-cluster" \
-        --dashboard-path "./instance/.data/grafana/dashboards" \
+        --dashboard-path "./.data/grafana/dashboards" \
         --influxdb "http://root:root@localhost:8086" | ./influxdb-loader/build/scripts/influxdb-loader
 
 The above command discovers all the brokers that are part of the cluster and configures an influxdb-loader
- instance using local instance of InfluxDB. It also generates a dashboard for the discovered cluster which
+ using local instance of InfluxDB. It also generates a dashboard for the discovered cluster which
  will be stored in the default Kafka Metrics instance.
 
 #### Example usage for remote Kafka cluster with Metrics Agent 
@@ -168,7 +168,7 @@ On the Kafka Metrics instance:
         --zookeeper "<SEED-ZK-HOST>:<ZK-PORT>" \
         --topic "metrics" \
         --dashboard "remote-kafka-cluster" \
-        --dashboard-path "./instance/.data/grafana/dashboards" \
+        --dashboard-path "./.data/grafana/dashboards" \
         --influxdb "http://root:root@localhost:8086" | ./influxdb-loader/build/scripts/influxdb-loader
 
 
@@ -183,14 +183,14 @@ framework. To build an executable jar, run the following command:
 
     ./gradlew :influxdb-loader:build
 
-Once built, the instance can be launched with `./influxdb-loader/build/scripts/influxdb-loader` by passing it 
+Once built, the loader can be launched with `./influxdb-loader/build/scripts/influxdb-loader` by passing it 
 path to properties file containing the following configuration:
     - [InfluxDB Configuration](#configuration-influxdb) (required)
     - [JMX Scanner Configuration](#configuration-scanner) (at least one scanner or consumer is required)
     - [Metrics Consumer Configuration](#configuration-consumer) (at least on scanner or consumer is required)
 
 There is a few example config files under `influxdb-loader/conf` which explain how JMX scanners can be added.
-If you have a Kafka Broker running locally which has a JMX Server listening on port 19092 and a bundled instance of 
+If you have a Kafka Broker running locally which has a JMX Server listening on port 19092 and a docker instances of  
 InfluxDB and Grafana running locally, you can use the following script and config file to collect the broker metrics:
 
     ./influxdb-loader/build/scripts/influxdb-loader influxdb-loader/conf/local-jmx.properties
@@ -208,7 +208,7 @@ by copying the jar into `libs` directory of the kafka installation:
 
     cp ./metrics-connect/build/lib/metrics-connect-*.jar $KAFKA_HOME/libs
 
-Now you can launch connect instance with the following example configurations:
+Now you can launch for example kafka connect standalone connector with the following example configurations:
 
     "$KAFKA_HOME/bin/connect-standalone.sh" "metrics-connect.properties" "influxdb-sink.properties" "hdfs-sink.properties"
 
