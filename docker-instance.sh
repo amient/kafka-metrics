@@ -7,7 +7,7 @@ wait_for_endpoint() {
     EXPECTED=$2
     MAX_WAIT=$3
     while [  $MAX_WAIT -gt 0 ]; do
-         echo "$URL $MAX_WAIT";
+         echo -en "\r$URL $MAX_WAIT";
          RESPONSE_STATUS=$(curl --stderr /dev/null -X GET -i "$URL" | head -1 | cut -d' ' -f2)
          if [ ! -z $RESPONSE_STATUS ] ; then
             if [ $RESPONSE_STATUS == $EXPECTED ]; then
@@ -38,7 +38,7 @@ GRAFANA_URL="http://admin:admin@localhost:3000"
 
 INFLUXDB_URL="http://localhost:8086"
 
-wait_for_endpoint "$INFLUXDB_URL/ping" 204 30
+wait_for_endpoint "$INFLUXDB_URL/ping" 204 1800
 if [ $? == 1 ]; then
     echo "influxdb endpoind check successful"
     "$INSTALL_DIR/golang/bin/influx" -execute "CREATE DATABASE IF NOT EXISTS metrics"
