@@ -4,7 +4,7 @@ This is a system for real-time aggregation of metrics from large distributed sys
 monitoring solutions it fulfills the role of `real-time distributed aggregation` element to combine metrics from 
 multiple systems, with some out-of-the-box features for data streams pipelines based on Apache Kafka.
 
-### Contents
+## Contents
 
 1. [Overview](#overview)
 	- [Architecture](#overview)
@@ -32,6 +32,7 @@ multiple systems, with some out-of-the-box features for data streams pipelines b
 6. [Development](#development)
 
 <a name="overview">
+
 ## Overview
 </a>
 
@@ -51,6 +52,7 @@ alerting on top of that.
 There are several ways of how the aggregation of metrics is achieved using one or more modules.  
 
 <a name="scenario0">
+
 ### Basic Scenario
 </a>
 
@@ -61,6 +63,7 @@ as long as they already expose JMX MBeans and in a local environment the kafka t
 ![scenario0](doc/kafka-metrics-scenario0.png)
 
 <a name="scenario1">
+
 ### Multi-Server Scenario
 </a>
 
@@ -73,6 +76,7 @@ kafka consumer that reads measurements from the metrics topic and writes them in
 ![scenario1](doc/kafka-metrics-scenario1.png)
 
 <a name="scenario2">
+
 ### Multi-Data-Centre Scenario
 </a>
 
@@ -84,6 +88,7 @@ providing a real-time monitoring of the entire system.
 ![scenario2](doc/kafka-metrics-scenario2.png)
 
 <a name="scenario3">
+
 ### Multi-Environment Scenario
 </a>
 
@@ -98,6 +103,7 @@ the metrics topic.***
 
 
 <a name="quick-start">
+
 ## Quick-start example with existing Kafka cluster using discovery module and auto-generated dashboard 
 </a>
 
@@ -127,10 +133,12 @@ For a cluster of 3 brokers it might look like this:
 ![screenshot](doc/discovery-example-3-brokers.png)
 
 <a name="modules-reference">
+
 ## Modules Reference
 </a>
 
 <a name="usage-discovery">
+
 ### Cluster Discovery Tool
 </a>
 
@@ -173,6 +181,7 @@ On the Kafka Metrics instance:
 
 
 <a name="usage-loader">
+
 ### InfluxDB Loader Usage
 </a>
 
@@ -196,6 +205,7 @@ InfluxDB and Grafana running locally, you can use the following script and confi
     ./influxdb-loader/build/scripts/influxdb-loader influxdb-loader/conf/local-jmx.properties
 
 <a name="usage-connect">
+
 ### Metrics Connect Usage
 </a>
 
@@ -241,6 +251,7 @@ The third configuration file is a sink connector that loads the measurements to 
     ...
 
 <a name="usage-connect">
+
 ## Metrics Connect Usage
 </a>
 
@@ -298,6 +309,7 @@ timezone=Etc/GMT+1
 ```
 
 <a name="metrics-agent">
+
 ### Metrics Agent Usage
 </a>
 
@@ -315,6 +327,7 @@ To run the agent instance, a configuration file is required, which should contai
     ./metrics-agent/build/scripts/kafka-metrics-agent <CONFIG-PROPERTIES-FILE>
 
 <a name="usage-reporter">
+
 ### Topic Reporter Usage
 </a>
 
@@ -336,6 +349,7 @@ The reporter only requires one set of configuration properties:
 
 
 <a name="usage-reporter-kafka-old">
+
 #### Usage in Kafka Broker, Kafka Prism, Kafka Producer (pre 0.8.2), Kafka Consumer (pre 0.9)
 </a>
 
@@ -346,6 +360,7 @@ add following properties to the configuration for the component
     kafka.metrics.<CONFIGURATION-OPTIONS>...
 
 <a name="usage-reporter-kafka-new">
+
 ####  Usage in Kafka NEW Producer (0.8.2+) and Consumer (0.9+) 
 </a>
 
@@ -353,6 +368,7 @@ add following properties to the configuration for the component
     kafka.metrics.<CONFIGURATION-OPTIONS>...
 
 <a name="usage-reporter-dropwizard">
+
 #### Usage in any application using dropwizard metrics (formerly yammer metrics)
 </a>
 
@@ -388,6 +404,7 @@ will produce kafka-metrics messages to a configured topic every given time inter
     reporter.start(10, TimeUnit.SECONDS);
 
 <a name="usage-samza">
+
 ###  Usage in Samza (0.9+) 
 </a>
 
@@ -404,10 +421,12 @@ using MetricsSnapshotSerdeFactory. So just a normal samza metrics configuration 
     systems.kafkametrics.producer.bootstrap.servers=<...>
 
 <a name="configuration">
+
 ## Configuration
 </a>
 
 <a name="configuration-influxdb">
+
 ### InfluxDB Configuration
 </a>
 
@@ -421,6 +440,7 @@ parameter                                  | default                | descriptio
 **influxdb.password**                      | `root`                 | Authentication passord for API calls
 
 <a name="configuration-scanner">
+
 ### JMX Scanner Configuration
 </a>
 
@@ -437,6 +457,7 @@ jmx.{ID}.tag.{TAG-n}              | -                      | ...
 
 
 <a name="configuration-producer">
+
 ### Metrics Producer Configuration
 </a>
 
@@ -450,6 +471,7 @@ parameter                                  | default           | description
 *kafka.metrics.tag.<tag-name>.<tag=value>* | -                 | Fixed name-value pairs that will be used as tags in the published measurement for this instance, .e.g `kafka.metrics.tag.host.my-host-01` or `kafka.metrics.tag.dc.uk-az1`  
 
 <a name="configuration-consumer">
+
 ### Metrics Consumer Configuration
 </a>
 
@@ -465,6 +487,7 @@ consumer....                               | -                      | Any other 
 
 
 <a name="operations">
+
 ## Operations & Troubleshooting
 </a>
 
@@ -476,6 +499,7 @@ Using kafka console consumer with a formatter for kafka-metrics:
     ./bin/kafka-console-consumer.sh --zookeeper localhost --topic metrics --formatter io.amient.kafka.metrics.MeasurementFormatter
 
 <a name="development">
+
 ## Development
 </a>
 
