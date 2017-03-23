@@ -93,7 +93,7 @@ public class DiscoveryTool extends ZkClient implements Closeable {
                     System.out.println("kafka.metrics.bootstrap.servers=" + brokers.get(0).hostPort());
                     //consumer settings
                     System.out.println("consumer.topic=" + opts.valueOf(topic));
-                    System.out.println("consumer.zookeeper.connect=" + opts.valueOf(zookeeper));
+                    System.out.println("consumer.bootstrap.servers=" + brokers.get(0).hostPort());
                     System.out.println("consumer.group.id=kafka-metrics-"+ opts.valueOf(dashboard));
                 }
 

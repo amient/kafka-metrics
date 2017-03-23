@@ -19,29 +19,26 @@
 
 package io.amient.kafka.metrics;
 
-import kafka.serializer.Decoder;
-import kafka.utils.VerifiableProperties;
 import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 
-public class MeasurementDecoder implements Decoder<List<MeasurementV1>> {
+public class MeasurementDeserializer implements Deserializer<List<MeasurementV1>> {
 
     private InternalAvroSerde internalAvro = new InternalAvroSerde();
     private AutoJsonDeserializer autoJsonDeserializer = new AutoJsonDeserializer();
 
-    public MeasurementDecoder(VerifiableProperties props) {
-        this(props.props());
-    }
 
-    public MeasurementDecoder(Properties props) {
-        //at the point of implementing schema registry serde this will take schema.registry.url etc.
+    @Override
+    public void configure(Map<String, ?> configs, boolean isKey) {
+
     }
 
     @Override
-    public List<MeasurementV1> fromBytes(byte[] bytes) {
+    public List<MeasurementV1> deserialize(String topic, byte[] bytes) {
         switch(bytes[0]) {
             case 0x0: throw new SerializationException("Schema Registry doesn't support maps and arrays yet.");
             case 0x1: return Arrays.asList(internalAvro.fromBytes(bytes));
@@ -50,5 +47,9 @@ public class MeasurementDecoder implements Decoder<List<MeasurementV1>> {
         }
     }
 
+    @Override
+    public void close() {
+
+    }
 }
 
