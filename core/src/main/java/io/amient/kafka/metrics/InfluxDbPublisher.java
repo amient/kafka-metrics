@@ -78,7 +78,7 @@ public class InfluxDbPublisher implements MeasurementPublisher {
         for (java.util.Map.Entry<String, Double> field : m.getFields().entrySet()) {
             builder.field(field.getKey().toString(), field.getValue());
         }
-        influxDB.write(dbName, "default", builder.build());
+        influxDB.write(dbName, "autogen", builder.build());
     }
 
 
