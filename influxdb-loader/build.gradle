@@ -5,6 +5,7 @@ mainClassName = 'io.amient.kafka.metrics.InfluxDbLoaderMain'
 dependencies {
     compile project(':core')
     compile group: 'org.apache.kafka', name: 'kafka_' + baseScalaVersion, version: rootProject.kafkaVersion
+    compile group: 'org.apache.kafka', name: 'kafka-clients', version: rootProject.kafkaVersion
 }
 
 jar {
