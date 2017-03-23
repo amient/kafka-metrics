@@ -33,17 +33,17 @@ public class MeasurementFormatter implements MessageFormatter {
 
     private static final DateFormat date = new SimpleDateFormat("dd/MM/yyyy G 'at' HH:mm:ss z");
 
-    private MeasurementDecoder decoder = null;
+    private MeasurementDeserializer decoder = null;
 
     @Override
     public void init(Properties props) {
-        decoder = new MeasurementDecoder(props);
+        decoder = new MeasurementDeserializer();
     }
 
     @Override
     public void writeTo(byte[] key, byte[] value, PrintStream output) {
         try {
-            for(MeasurementV1 measurement: decoder.fromBytes(value)) {
+            for(MeasurementV1 measurement: decoder.deserialize(null, value)) {
                 writeTo(measurement, output);
             }
         } catch (SerializationException e) {

@@ -88,7 +88,7 @@ public class ProducerPublisher implements MeasurementPublisher {
     @Override
     public void close() {
     	if (producer != null) {
-            close();
+            producer.close();
       	}
     }
     

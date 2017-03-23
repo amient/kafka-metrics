@@ -19,19 +19,17 @@
 
 package io.amient.kafka.metrics;
 
-import kafka.consumer.ConsumerConfig;
-import kafka.consumer.ConsumerIterator;
-import kafka.javaapi.consumer.ConsumerConnector;
-import kafka.consumer.KafkaStream;
-import kafka.message.MessageAndMetadata;
-import kafka.serializer.StringDecoder;
-import kafka.utils.VerifiableProperties;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class ConsumerMetrics {
 
@@ -43,13 +41,13 @@ public class ConsumerMetrics {
 
     static final String DEFAULT_CLIENT_ID = "kafka-metrics";
 
-    private final ExecutorService executor;
-    private ConsumerConnector consumer = null;
+    private KafkaConsumer<String, List<MeasurementV1>> consumer = null;
+
+    volatile private Boolean terminated = false;
 
     public ConsumerMetrics(Properties props) {
         String topic = props.getProperty(COFNIG_CONSUMER_TOPIC, "metrics");
         Integer numThreads = Integer.parseInt(props.getProperty(COFNIG_CONSUMER_THREADS, "1"));
-        executor = Executors.newFixedThreadPool(numThreads);
 
         Properties consumerProps = new Properties();
         consumerProps.put("client.id", DEFAULT_CLIENT_ID);
@@ -62,90 +60,89 @@ public class ConsumerMetrics {
                 log.info(propKey + "=" + propVal);
             }
         }
+        consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, MeasurementDeserializer.class.getName());
 
         if (consumerProps.size() <= 1) {
             log.info("ConsumerMetrics disabled");
             return;
         }
 
-        VerifiableProperties config = new VerifiableProperties(consumerProps);
-        consumer = kafka.consumer.Consumer.createJavaConsumerConnector(
-                new ConsumerConfig(config.props()));
+        consumer = new KafkaConsumer<>(consumerProps);
 
         addShutdownHook();
-        
-        Map<String, Integer> topicCountMap = new HashMap<String, Integer>();
-        topicCountMap.put(topic, new Integer(numThreads));
-        Map<String, List<KafkaStream<String, List<MeasurementV1>>>> consumerMap
-                = consumer.createMessageStreams(topicCountMap, new StringDecoder(config), new MeasurementDecoder(config));
 
-        List<KafkaStream<String, List<MeasurementV1>>> streams = consumerMap.get(topic);
+        try {
+            consumer.subscribe(Arrays.asList(topic));
 
-        for (final KafkaStream<String, List<MeasurementV1>> stream : streams) {
-            executor.submit(new Task(new InfluxDbPublisher(props), stream));
+            new Task(new InfluxDbPublisher(props), consumer).run();
+
+        } finally {
+            terminated = true;
         }
-        
+
         shutdown();
 
     }
 
-	private void shutdown() {
-		if (executor != null) {
-			executor.shutdown();
-		}
-		if (consumer != null) {
-            consumer.shutdown();
-		}
-	}
-	
+    private void shutdown() {
+        if (consumer != null) {
+            consumer.close();
+        }
+    }
+
     private void addShutdownHook() {
- 	   Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
- 	            @Override
- 	            public void run() {
- 	                shutdown();
- 	            }
- 	        }));
-  }
-    
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                shutdown();
+            }
+        }));
+    }
+
 
     public boolean isTerminated() {
-        return executor.isTerminated();
+        return terminated;
     }
 
     public static class Task implements Runnable {
-        final private KafkaStream<String, List<MeasurementV1>> stream;
+
         final private MeasurementFormatter formatter;
         final private MeasurementPublisher publisher;
+        final private KafkaConsumer<String, List<MeasurementV1>> consumer;
 
-        public Task(MeasurementPublisher publisher, KafkaStream<String, List<MeasurementV1>> stream) {
-            this.stream = stream;
+        public Task(MeasurementPublisher publisher, KafkaConsumer<String, List<MeasurementV1>> consumer) {
+            this.consumer = consumer;
             this.formatter = new MeasurementFormatter();
             this.publisher = publisher;
         }
 
         public void run() {
-            ConsumerIterator<String, List<MeasurementV1>> it = stream.iterator();
+
             try {
-                while (it.hasNext()) {
-                    try {
-                        MessageAndMetadata<String, List<MeasurementV1>> m = it.next();
-                        if (m.message() != null) {
-                            for (MeasurementV1 measurement : m.message()) {
-                                try {
-                                    publisher.publish(measurement);
-                                } catch (RuntimeException e) {
+                while (true) {
+                    Iterator<ConsumerRecord<String, List<MeasurementV1>>> it = consumer.poll(250).iterator();
+                    while (it.hasNext()) {
+                        try {
+                            ConsumerRecord<String, List<MeasurementV1>> m = it.next();
+                            if (m.value() != null) {
+                                for (MeasurementV1 measurement : m.value()) {
+                                    try {
+                                        publisher.publish(measurement);
+                                    } catch (RuntimeException e) {
 
-                                    log.error("Unable to publish measurement " + formatter.toString(measurement)
-                                            + "tag count=" + measurement.getFields().size()
-                                            + ", field count=" + measurement.getFields().size()
-                                            , e);
+                                        log.error("Unable to publish measurement " + formatter.toString(measurement)
+                                                        + "tag count=" + measurement.getFields().size()
+                                                        + ", field count=" + measurement.getFields().size()
+                                                , e);
 
+                                    }
                                 }
                             }
+                        } catch (Throwable e) {
+                            e.printStackTrace();
+                            return;
                         }
-                    } catch (Throwable e) {
-                        e.printStackTrace();
-                        return;
                     }
                 }
             } finally {
