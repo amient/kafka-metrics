@@ -1,11 +1,12 @@
 ext.javaVersion = 1.7
 ext.kafkaVersion = '0.10.1.1'
+ext.avroVersion = '1.8.1'
 
 project.version = ext.kafkaVersion
 
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.7'
+    gradleVersion = '3.4.1'
 }
 
 allprojects {
@@ -36,7 +37,7 @@ allprojects {
         }
 
         repositories {
-            mavenLocal()
+
             mavenCentral()
         }
 
@@ -48,7 +49,7 @@ allprojects {
 
         sourceSets {
             main {
-                compileClasspath += [configurations.provided]
+                compileClasspath += configurations.provided
             }
         }
 
