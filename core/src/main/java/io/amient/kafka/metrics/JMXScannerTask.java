@@ -86,6 +86,7 @@ public class JMXScannerTask implements Runnable {
 
     public JMXScannerTask(JMXScannerConfig config, MeasurementPublisher publisher) throws IOException, MalformedObjectNameException {
         this.pattern = new ObjectName(config.getQueryScope());
+        log.info("Connecting to JMX service:jmx:rmi:///jndi/rmi://" + config.getAddress() + "/jmxrmi");
         JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://" + config.getAddress() + "/jmxrmi");
         this.jmxConnector = JMXConnectorFactory.connect(url);
         this.conn = jmxConnector.getMBeanServerConnection();
