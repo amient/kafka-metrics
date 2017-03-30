@@ -178,9 +178,6 @@ public class Dashboard {
                 .put("show", false)
                 .put("full", false)
         );
-//        "thresholds": "",
-//        "colorBackground": false,
-//        "colorValue": false,
         newTarget(stat, "", query);
         return stat;
     }
@@ -221,27 +218,6 @@ public class Dashboard {
         target.put("rawQuery", true);
         return target;
     }
-
-//    public ObjectNode newTarget(ObjectNode panel) {
-//        ObjectNode target = ((ArrayNode) panel.get("targets")).addObject();
-//        target.put("rawQuery", false);
-//
-//        target.put("measurement", "UnderReplicatedPartitions");
-//
-//        ArrayNode fields = mapper.createArrayNode();
-//        fields.addObject().put("name", "Value").put("func", "mean");
-//        target.set("fields", fields);
-//
-//        ArrayNode groupBy = mapper.createArrayNode();
-//        groupBy.addObject().put("type", "time").put("interval", "auto");
-//        target.set("groupBy", groupBy);
-//
-//        ArrayNode tags = mapper.createArrayNode();
-//        tags.addObject().put(...).put(...).put(...);
-//        target.set("tags", tags);
-//
-//        return target;
-//    }
 
     private ObjectNode newPanel(ArrayNode rowPanels, String title, int span, String type) {
         ObjectNode panel = rowPanels.addObject();
