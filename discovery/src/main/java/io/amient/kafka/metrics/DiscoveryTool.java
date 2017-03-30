@@ -222,6 +222,7 @@ public class DiscoveryTool extends ZkClient implements Closeable {
 
         ObjectNode graphT4 = dash.newGraph(topicsRow, "Output / Sec", 5, false).put("fill", 2).put("stack", false);
         graphT4.replace("y_formats", dash.newArray("bytes", "short"));
+        graphT4.replace("aliasColors", dash.newObject().put("$topic$", "#447EBC"));
         graphT4.set("tooltip", dash.newObject().put("value_type", "individual").put("shared", false));
         dash.newTarget(graphT4, "$tag_topic", "SELECT sum(\"OneMinuteRate\") FROM \"BytesOutPerSec\" " +
                 "WHERE \"name\" = '" + name + "' AND \"topic\" =~ /^$topic$/ AND $timeFilter " +
