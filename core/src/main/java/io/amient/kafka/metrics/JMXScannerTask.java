@@ -36,12 +36,13 @@ public class JMXScannerTask implements Runnable {
 
     static private final Logger log = LoggerFactory.getLogger(JMXScannerTask.class);
 
-    private final JMXConnector jmxConnector;
-    private final MBeanServerConnection conn;
     private final Map<String, String> tags;
     private final MeasurementPublisher publisher;
     private final MeasurementFormatter formatter;
     private final ObjectName pattern;
+    private final String address;
+    private JMXConnector jmxConnector = null;
+    private MBeanServerConnection conn = null;
 
     public static class JMXScannerConfig {
 
@@ -86,35 +87,47 @@ public class JMXScannerTask implements Runnable {
 
     public JMXScannerTask(JMXScannerConfig config, MeasurementPublisher publisher) throws IOException, MalformedObjectNameException {
         this.pattern = new ObjectName(config.getQueryScope());
-        log.info("Connecting to JMX service:jmx:rmi:///jndi/rmi://" + config.getAddress() + "/jmxrmi");
-        JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://" + config.getAddress() + "/jmxrmi");
-        this.jmxConnector = JMXConnectorFactory.connect(url);
-        this.conn = jmxConnector.getMBeanServerConnection();
+        this.address = "service:jmx:rmi:///jndi/rmi://" + config.getAddress() + "/jmxrmi";
         this.tags = config.getTags();
         this.publisher = publisher;
         this.formatter = new MeasurementFormatter();
-        log.info("url=" + url + ", scope=" + config.queryScope);
+        log.info("connection " + address + ", scope " + config.queryScope);
     }
 
     @Override
     public void run() {
         try {
-            final long timestamp = System.currentTimeMillis();
-            Set<ObjectInstance> beans = conn.queryMBeans(pattern, null);
-            for (ObjectInstance i : beans) {
-                if (log.isDebugEnabled()) {
-                    log.debug(i.getObjectName().toString());
+            if (conn == null) {
+                try {
+                    JMXServiceURL url = new JMXServiceURL(address);
+                    this.jmxConnector = JMXConnectorFactory.connect(url);
+                    this.conn = jmxConnector.getMBeanServerConnection();
+                } catch (IOException e) {
+                    log.warn("Could not connect to " + address);
                 }
-                MeasurementV1[] measurements = extractMeasurements(i, timestamp);
-                for (MeasurementV1 measurement : measurements) {
-                    if (publisher != null && measurement.getFields().size() > 0) {
-                        publisher.publish(measurement);
-                    }
-                }
-
             }
+            if (conn != null) {
+                final long timestamp = System.currentTimeMillis();
+                Set<ObjectInstance> beans = conn.queryMBeans(pattern, null);
+                for (ObjectInstance i : beans) {
+                    if (log.isDebugEnabled()) {
+                        log.debug(i.getObjectName().toString());
+                    }
+                    MeasurementV1[] measurements = extractMeasurements(i, timestamp);
+                    for (MeasurementV1 measurement : measurements) {
+                        if (publisher != null && measurement.getFields().size() > 0) {
+                            publisher.publish(measurement);
+                        }
+                    }
+
+                }
+            }
+        } catch (IntrospectionException e) {
+            log.warn("could not retrieve some mbeans", e);
+        } catch (java.rmi.ConnectException e) {
+            this.conn = null;
         } catch (Exception e) {
-            log.warn("could not retrieve some mbeans", e.getMessage());
+            log.warn("could not retrieve some mbeans", e);
         }
     }
 
