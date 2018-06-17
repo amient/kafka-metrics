@@ -124,7 +124,7 @@ public class JMXScannerTask implements Runnable {
             }
         } catch (IntrospectionException e) {
             log.warn("could not retrieve some mbeans", e);
-        } catch (java.rmi.ConnectException e) {
+        } catch (IOException e) {
             this.conn = null;
         } catch (Exception e) {
             log.warn("could not retrieve some mbeans", e);
