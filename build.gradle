@@ -3,7 +3,7 @@ ext {
 
     javaVersion = '1.8'
     junitVersion = '4.12'
-    kafkaVersion = '1.1.0'
+    kafkaVersion = '2.0.0'
     jacksonVersion = '2.9.5'
     avroVersion = '1.8.2'
     slf4jVersion = '1.7.21'
