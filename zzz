@@ -137,7 +137,7 @@ fi
 #excute on the variant branches
 if [ "$RUN_ON_VARIANTS" == "true" ]; then
     variant "1.1" "$SETS" $C
-#    variant "1.0" "$SETS" $C
+    variant "1.0" "$SETS" $C
 fi
 
 git checkout "$ROOT"
