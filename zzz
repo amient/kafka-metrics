@@ -48,34 +48,10 @@ variant() {
     fi
 
     if [ "$C" != "-" ]; then
-        if [ "$SETS" == "-" ]; then
-            MESSAGE="$BRANCH/$C (all modules)"
-            echo $MESSAGE
-            ./gradlew $C
-            continue $? $MESSAGE
-        elif [ $SETS == "spark" ]; then
-            MESSAGE="$BRANCH/:spark:$C"
-            echo $MESSAGE
-            ./gradlew :spark:$C
-            continue $? $MESSAGE
-        elif [ $SETS == "kafka" ]; then
-            MESSAGE="$BRANCH/:kafka:avro-formatter-kafka:$C"
-            echo $MESSAGE
-            ./gradlew :kafka:avro-formatter-kafka:$C
-            continue $? $MESSAGE
-            MESSAGE="$BRANCH/:kafka:avro-serde-kafka:$C"
-            echo $MESSAGE
-            ./gradlew :kafka:avro-serde-kafka:$C
-            continue $? $MESSAGE
-            MESSAGE="$BRANCH/:kafka:storage-kafka:$C"
-            ./gradlew :kafka:storage-kafka:$C
-            continue $? $MESSAGE
-            MESSAGE="$BRANCH/:kafka:test-util-kafka:$C"
-            ./gradlew :kafka:test-util-kafka:$C
-            continue $? $MESSAGE
-        else
-            fail "Unknown set of modules: $SETS"
-        fi
+        MESSAGE="$BRANCH/$C (all modules)"
+        echo $MESSAGE
+        ./gradlew $C
+        continue $? $MESSAGE
     fi
 
 }
@@ -95,16 +71,10 @@ Usage() {
     echo ""
     echo "This script will run the given gradle commands over the whole cross-compiled space of this project."
     echo ""
-    echo "Usage: ./zzz <ROOT-BRANCH> <TASK> [<MODULE-SET>]"
+    echo "Usage: ./zzz <ROOT-BRANCH> <TASK>"
     echo ""
     echo "  ROOT-BRANCH             Can be either master or any development branch"
     echo "                          - if it's not master, variant branches will be created automatically"
-    echo ""
-    echo "  MODULE-SET:"
-    echo "      -                   - if omitted runs for all modules"
-    echo "      kafka               - run for all kafka submodules"
-    echo "      spark               - run for all spark submodules"
-    echo ""
     echo "  TASK: "
     echo "      compile             - run compile on all variants"
     echo "      test                - run test on branches only"
