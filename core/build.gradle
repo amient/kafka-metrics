@@ -21,6 +21,5 @@ dependencies {
     provided group: 'org.apache.kafka', name: 'kafka_' + baseScalaVersion, version: rootProject.kafkaVersion
     provided group: 'org.apache.kafka', name: 'kafka-clients', version: rootProject.kafkaVersion
     compile group: 'org.apache.avro', name: 'avro', version: rootProject.avroVersion
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.4.3'
-    compile group: 'org.influxdb', name: 'influxdb-java', version: '2.5'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: rootProject.jacksonVersion
 }

@@ -6,6 +6,7 @@ version = rootProject.version
 
 dependencies {
     compile project(':core')
+    compile project(':influxdb-loader')
     provided group: 'org.apache.kafka', name: 'kafka_' + baseScalaVersion, version: rootProject.kafkaVersion
     provided group: 'org.apache.kafka', name: 'connect-api', version: rootProject.kafkaVersion
 }

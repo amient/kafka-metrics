@@ -44,9 +44,6 @@ The aim of the design is to have small composable modules that can be deployed b
 from quick, non-intrusive inspection of existing Kafka clusters and stream pipelines, to massive-scale purpose-built 
 monitoring, detection and alerting infrastructure for distributed systems in general.
 
-It uses InfluxDB as the time series back-end and comes with, but is not limited to Grafana front-end and Kapactior
-alerting on top of that.
-
 ![overview](doc/metrics.png)
 
 There are several ways of how the aggregation of metrics is achieved using one or more modules.  
@@ -283,8 +280,8 @@ maturity of various kafka components, watch out for subtle differences when addi
 use the reporter as plug-in for kafka brokers and tools you need to put the packaged jar in their classpath, which in 
 kafka broker means putting it in the kafka /libs directory:
 
-    ./gradlew install
-    cp stream-reporter/lib/stream-reporter-*.jar $KAFKA_HOME/libs/
+    ./gradlew :metrics-reporter:build
+    cp stream-reporter/build/lib/stream-reporter-*.jar $KAFKA_HOME/libs/
 
 The reporter only requires one set of configuration properties:
     - [Metrics Producer Configuration](#configuration-producer)

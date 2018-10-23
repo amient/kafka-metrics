@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+
+fail() {
+    MESSAGE=$1
+    RED='\033[0;31m'
+    NC='\033[0m'
+    echo -e "${RED}Failure: $MESSAGE $NC"
+    echo ""
+    exit 1;
+}
+
+continue() {
+    result=$1
+    MESSAGE=$2
+    if [ $result -ne 0 ]; then
+        fail $MESSAGE
+    fi
+}
+
+variant() {
+    VARIANT="$1"
+    SETS="$2"
+    C="${@:3}"
+
+    echo ""
+    if [ "$VARIANT" == "$ROOT" ]; then
+        git checkout master
+        continue $? "master/checkout"
+        git pull
+        continue $? "master/pull"
+        BRANCH="$ROOT"
+        if [ "$BRANCH" != "master" ]; then
+            git checkout $BRANCH 2>/dev/null || git checkout -b $BRANCH
+            continue $? "$BRANCH/checkout"
+        fi
+    else
+        git checkout "master-$VARIANT"
+        continue $? "master-$VARIANT/checkout"
+        git pull
+        continue $? "master-$VARIANT/pull"
+        BRANCH="$ROOT-$VARIANT"
+        if [ "$BRANCH" != "master-$VARIANT" ]; then
+            git checkout $BRANCH 2>/dev/null || git checkout -b $BRANCH
+            continue $? "$BRANCH/checkout"
+        fi
+        git merge $ROOT --no-edit
+        continue $? "$BRANCH/merge $ROOT"
+    fi
+
+    if [ "$C" != "-" ]; then
+        if [ "$SETS" == "-" ]; then
+            MESSAGE="$BRANCH/$C (all modules)"
+            echo $MESSAGE
+            ./gradlew $C
+            continue $? $MESSAGE
+        elif [ $SETS == "spark" ]; then
+            MESSAGE="$BRANCH/:spark:$C"
+            echo $MESSAGE
+            ./gradlew :spark:$C
+            continue $? $MESSAGE
+        elif [ $SETS == "kafka" ]; then
+            MESSAGE="$BRANCH/:kafka:avro-formatter-kafka:$C"
+            echo $MESSAGE
+            ./gradlew :kafka:avro-formatter-kafka:$C
+            continue $? $MESSAGE
+            MESSAGE="$BRANCH/:kafka:avro-serde-kafka:$C"
+            echo $MESSAGE
+            ./gradlew :kafka:avro-serde-kafka:$C
+            continue $? $MESSAGE
+            MESSAGE="$BRANCH/:kafka:storage-kafka:$C"
+            ./gradlew :kafka:storage-kafka:$C
+            continue $? $MESSAGE
+            MESSAGE="$BRANCH/:kafka:test-util-kafka:$C"
+            ./gradlew :kafka:test-util-kafka:$C
+            continue $? $MESSAGE
+        else
+            fail "Unknown set of modules: $SETS"
+        fi
+    fi
+
+}
+
+publish() {
+    BRANCH=$1
+    COMMAND=$2
+    git checkout $BRANCH
+    continue $? "$BRANCH/checkout"
+    git pull
+    continue $? "$BRANCH/pull"
+    ./gradlew $COMMAND
+    continue $? "$BRANCH/publish"
+}
+
+Usage() {
+    echo ""
+    echo "This script will run the given gradle commands over the whole cross-compiled space of this project."
+    echo ""
+    echo "Usage: ./zzz <ROOT-BRANCH> <TASK> [<MODULE-SET>]"
+    echo ""
+    echo "  ROOT-BRANCH             Can be either master or any development branch"
+    echo "                          - if it's not master, variant branches will be created automatically"
+    echo ""
+    echo "  MODULE-SET:"
+    echo "      -                   - if omitted runs for all modules"
+    echo "      kafka               - run for all kafka submodules"
+    echo "      spark               - run for all spark submodules"
+    echo ""
+    echo "  TASK: "
+    echo "      compile             - run compile on all variants"
+    echo "      test                - run test on branches only"
+    echo "      test-all            - run all tests on root and all variants"
+    echo "      merge               - only merge root into all variants"
+    echo "      install             - install selected modules sets from all branches into local maven"
+    echo "      publish             - publish all master and variant modules to sonatype central repo"
+    echo ""
+    echo ""
+}
+
+if [ -z "$1" ]; then
+    Usage
+    fail "Missing root branch argument"
+fi
+
+ROOT="$1"
+
+case "$2" in
+    compile)
+        C="compile"
+        RUN_ON_ROOT="true"
+        RUN_ON_VARIANTS="true"
+        ;;
+    test-all)
+        C="test --quiet"
+        RUN_ON_ROOT="true"
+        RUN_ON_VARIANTS="true"
+        ;;
+    test)
+        C="test --quiet"
+        RUN_ON_ROOT="false"
+        RUN_ON_VARIANTS="true"
+        ;;
+    merge)
+        C="-"
+        RUN_ON_ROOT="false"
+        RUN_ON_VARIANTS="true"
+        ;;
+    build)
+        C="build"
+        RUN_ON_ROOT="true"
+        RUN_ON_VARIANTS="true"
+        ;;
+    *)
+        Usage
+        fail "Invalid <TASK> argument"
+        ;;
+esac
+
+if [ -z "$3" ]; then
+    SETS="-"
+else
+    SETS="$3"
+fi
+
+#excute on the root branch
+if [ "$RUN_ON_ROOT" == "true" ]; then
+    variant "$ROOT" "$SETS" "$C"
+fi
+
+#excute on the variant branches
+#if [ "$RUN_ON_VARIANTS" == "true" ]; then
+#    variant "kafka_1.1" "$SETS" $C
+#    variant "kafka_1.0" "$SETS" $C
+#fi
+
+git checkout "$ROOT"
+continue $? "Checkout back to root branch"

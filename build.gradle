@@ -1,35 +1,30 @@
-ext.javaVersion = 1.7
-ext.kafkaVersion = '0.10.1.1'
-ext.avroVersion = '1.8.1'
+ext {
+    encoding = "UTF-8"
+
+    javaVersion = '1.8'
+    junitVersion = '4.12'
+    kafkaVersion = '1.1.0'
+    jacksonVersion = '2.9.5'
+    avroVersion = '1.8.2'
+    slf4jVersion = '1.7.21'
+    //
+    scalaVersion = '2.11.8'
+    baseScalaVersion = scalaVersion.split("\\.")[0] + '.' + scalaVersion.split("\\.")[1]
+}
 
 project.version = ext.kafkaVersion
 
-
 task wrapper(type: Wrapper) {
-    gradleVersion = '3.4.1'
+    gradleVersion = '4.9'
 }
 
 allprojects {
-
-    apply plugin: 'idea'
 
     plugins.withType(JavaPlugin).whenPluginAdded {
 
         version = rootProject.version
         sourceCompatibility = rootProject.javaVersion
         libsDirName = 'lib'
-
-        if (!hasProperty('scalaVersion')) {
-            ext.scalaVersion = '2.11.8'
-        }
-
-        if (scalaVersion.startsWith('2.10')) {
-            ext.baseScalaVersion = '2.10'
-        } else if (scalaVersion.startsWith('2.11')) {
-            ext.baseScalaVersion = '2.11'
-        } else {
-            ext.baseScalaVersion = scalaVersion
-        }
 
         configurations {
             provided
@@ -42,9 +37,9 @@ allprojects {
         }
 
         dependencies {
-            compile group: 'org.slf4j', name:'slf4j-api', version:'1.7.6'
-            compile group: 'org.slf4j', name:'slf4j-log4j12', version:'1.7.6'
-            testCompile group: 'junit', name: 'junit', version: '4.+'
+            compile group: 'org.slf4j', name:'slf4j-api', version: slf4jVersion
+            compile group: 'org.slf4j', name:'slf4j-log4j12', version: slf4jVersion
+            testCompile group: 'junit', name: 'junit', version: junitVersion
         }
 
         sourceSets {
@@ -53,11 +48,11 @@ allprojects {
             }
         }
 
-        idea {
-            module {
-                scopes.PROVIDED.plus += [configurations.provided]
-            }
-        }
+//        idea {
+//            module {
+//                scopes.PROVIDED.plus += [configurations.provided]
+//            }
+//        }
 
     }
 }
