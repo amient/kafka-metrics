@@ -80,9 +80,7 @@ Usage() {
     echo "      test                - run test on branches only"
     echo "      test-all            - run all tests on root and all variants"
     echo "      merge               - only merge root into all variants"
-    echo "      install             - install selected modules sets from all branches into local maven"
-    echo "      publish             - publish all master and variant modules to sonatype central repo"
-    echo ""
+    echo "      build               - build from all branches"
     echo ""
 }
 
