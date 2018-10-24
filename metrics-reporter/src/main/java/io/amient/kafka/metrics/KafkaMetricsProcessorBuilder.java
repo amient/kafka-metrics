@@ -20,6 +20,7 @@
 package io.amient.kafka.metrics;
 
 import com.yammer.metrics.core.MetricsRegistry;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.slf4j.Logger;
@@ -43,12 +44,15 @@ public class KafkaMetricsProcessorBuilder {
     private String topic = "metrics";
     private String bootstrapServers;
     private Integer pollingIntervalSeconds = 10;
+    private int brokerId;
 
     public KafkaMetricsProcessorBuilder(MetricsRegistry registry) {
         this.registry = registry;
     }
 
     public KafkaMetricsProcessorBuilder configure(Properties config) {
+        this.brokerId = Integer.parseInt(config.getProperty("broker.id"));
+
         if (!config.containsKey(ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS) && config.containsKey("port")) {
             //if this is plugged into kafka broker itself we can use it for metrics producer itself
             config.put(ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS, "localhost:" + config.get("port"));
@@ -140,8 +144,13 @@ public class KafkaMetricsProcessorBuilder {
             log.info("Building TopicReporter with tag: " + tag.getKey() + "=" + tag.getValue());
         }
 
+
+        Properties props = new Properties();
+        props.put("bootstrap.servers", bootstrapServers);
+        props.put("client.id", "amient-kafka-metrics-admin");
+        AdminClient admin =  AdminClient.create(props);
         MeasurementPublisher publisher = new ProducerPublisher(bootstrapServers, topic);
-        return new KafkaMetricsProcessor(registry, kafkaMetrics, publisher, tags, pollingIntervalSeconds);
+        return new KafkaMetricsProcessor(brokerId, admin, registry, kafkaMetrics, publisher, tags, pollingIntervalSeconds);
     }
 
 }

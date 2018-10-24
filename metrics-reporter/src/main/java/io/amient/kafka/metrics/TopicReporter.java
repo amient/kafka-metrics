@@ -32,19 +32,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 public class TopicReporter implements
+//        org.apache.kafka.common.metrics.MetricsReporter, //FIXME this other interface is a bit odd but it seems to have some useful metrics
         kafka.metrics.KafkaMetricsReporter,
-        io.amient.kafka.metrics.TopicReporterMBean,
-        org.apache.kafka.common.metrics.MetricsReporter {
+        io.amient.kafka.metrics.TopicReporterMBean {
     private static final Logger log = LoggerFactory.getLogger(TopicReporter.class);
 
-    final private Map<MetricName, KafkaMetric> kafkaMetrics = new ConcurrentHashMap<MetricName, KafkaMetric>();
+    final private Map<MetricName, KafkaMetric> kafkaMetrics = new ConcurrentHashMap<>();
     private KafkaMetricsProcessorBuilder builder;
     private KafkaMetricsProcessor underlying;
     private Properties config;
     volatile private boolean running;
     volatile private boolean initialized;
 
-    public TopicReporter() {}
+    public TopicReporter() {
+        log.info("INIT TopicReporter");
+    }
 
     /**
      * Builder for programmatic configuration into an existing Yammer Metrics registry
@@ -55,25 +57,23 @@ public class TopicReporter implements
         return new KafkaMetricsProcessorBuilder(registry);
     }
 
-    /*
-     * kafka.metrics.kafkaMetricsProcessor and TopicReporterMBean for Kafka Broker integration
-     */
     public String getMBeanName() {
         return "kafka:type=io.amient.kafka.metrics.TopicReporter";
     }
 
-    synchronized public void init(VerifiableProperties kafkaConfig) {
+    public void init(VerifiableProperties kafkaConfig) {
+
         if (!initialized) {
+            initialized = true;
             this.config = kafkaConfig.props();
             this.builder = forRegistry(Metrics.defaultRegistry());
             builder.configure(config);
             underlying = builder.build();
-            initialized = true;
             startReporter(underlying.getPollingIntervaSeconds());
         }
     }
 
-    synchronized public void startReporter(long pollingPeriodSecs) {
+    public void startReporter(long pollingPeriodSecs) {
         if (initialized && !running) {
             underlying.start(pollingPeriodSecs, TimeUnit.SECONDS);
             running = true;
@@ -81,7 +81,7 @@ public class TopicReporter implements
         }
     }
 
-    public synchronized void stopReporter() {
+    public void stopReporter() {
         if (initialized && running) {
             running = false;
             underlying.shutdown();
@@ -90,43 +90,40 @@ public class TopicReporter implements
         }
     }
 
-    /*
-     * org.apache.kafka.common.metrics.MetricsReporter interface implementation for new Kafka Producer (0.8.2+)
-     * and Consumer (0.9+)
-     */
 
-    @Override
-    public void configure(Map<String, ?> configs) {
-        config = new Properties();
-        config.putAll(configs);
-    }
-
-    @Override
-    public void init(List<org.apache.kafka.common.metrics.KafkaMetric> metrics) {
-        builder = forRegistry(new MetricsRegistry());
-        builder.configure(config);
-        builder.setKafkaMetrics(kafkaMetrics);
-        for (org.apache.kafka.common.metrics.KafkaMetric metric : metrics) {
-            metricChange(metric);
-        }
-        underlying = builder.build();
-        initialized = true;
-        startReporter(underlying.getPollingIntervaSeconds());
-    }
-
-    @Override
-    public void metricChange(org.apache.kafka.common.metrics.KafkaMetric metric) {
-        kafkaMetrics.put(metric.metricName(), metric);
-    }
-
-    @Override
-    public void metricRemoval(KafkaMetric metric) {
-        kafkaMetrics.remove(metric.metricName());
-    }
-
-    @Override
-    public void close() {
-        stopReporter();
-    }
+//    @Override
+//    public void configure(Map<String, ?> configs) {
+//        config = new Properties();
+//        config.putAll(configs);
+//    }
+//
+//    @Override
+//    public void init(List<org.apache.kafka.common.metrics.KafkaMetric> metrics) {
+//        for (org.apache.kafka.common.metrics.KafkaMetric metric : metrics) {
+//            metricChange(metric);
+//        }
+//        if (! initialized) {
+//            builder = forRegistry(new MetricsRegistry());
+//            builder.configure(config);
+//            builder.setKafkaMetrics(kafkaMetrics);
+//            underlying = builder.build();
+//            startReporter(underlying.getPollingIntervaSeconds());
+//        }
+//    }
+//
+//    @Override
+//    public void metricChange(org.apache.kafka.common.metrics.KafkaMetric metric) {
+//        kafkaMetrics.put(metric.metricName(), metric);
+//    }
+//
+//    @Override
+//    public void metricRemoval(KafkaMetric metric) {
+//        kafkaMetrics.remove(metric.metricName());
+//    }
+//
+//    @Override
+//    public void close() {
+//        stopReporter();
+//    }
 
 }

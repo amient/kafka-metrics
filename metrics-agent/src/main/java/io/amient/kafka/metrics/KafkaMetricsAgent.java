@@ -43,8 +43,10 @@ public class KafkaMetricsAgent {
             }
             props.list(System.out);
             try {
-                MeasurementPublisher publisher = props.containsKey(ProducerPublisher.CONFIG_METRICS_TOPIC)
-                        ? new ProducerPublisher(props) : null;
+                ProducerPublisher publisher = props.containsKey(ProducerPublisher.CONFIG_METRICS_TOPIC) ? new ProducerPublisher(props) : null;
+                if (publisher != null) {
+                    publisher.addProducerShutdownHook();
+                }
                 JMXScanner scanner = new JMXScanner(props, publisher);
                 while (!scanner.isTerminated()) {
                     Thread.sleep(5000);

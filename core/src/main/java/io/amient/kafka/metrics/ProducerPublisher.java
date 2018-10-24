@@ -38,7 +38,7 @@ public class ProducerPublisher implements MeasurementPublisher {
     public static final String CONFIG_METRICS_TOPIC = "kafka.metrics.topic";
 
     private static final int DEFAULT_BACK_OFF_MS = 10000;
-    static final String DEFAULT_CLIENT_ID = "kafka-metrics";
+    static final String DEFAULT_CLIENT_ID = "amient-kafka-metrics";
 
     private final KafkaProducer producer;
     private final String topic;
@@ -65,7 +65,6 @@ public class ProducerPublisher implements MeasurementPublisher {
             put("value.serializer", io.amient.kafka.metrics.MeasurementSerializer.class);
             put("client.id", DEFAULT_CLIENT_ID);
         }});
-        addProducerShutdownHook();
     }
 
     public void publish(MeasurementV1 m) {
@@ -92,7 +91,7 @@ public class ProducerPublisher implements MeasurementPublisher {
       	}
     }
     
-    private void addProducerShutdownHook(){
+    void addProducerShutdownHook(){
     	   Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 
     	            @Override
