@@ -6,7 +6,7 @@ dependencies {
     compile project(':core')
     compile group: 'org.apache.kafka', name: 'kafka_' + baseScalaVersion, version: rootProject.kafkaVersion
     compile group: 'org.apache.kafka', name: 'kafka-clients', version: rootProject.kafkaVersion
-    compile group: 'org.influxdb', name: 'influxdb-java', version: '2.5'
+    compile group: 'org.influxdb', name: 'influxdb-java', version: '2.14'
 }
 
 jar {
