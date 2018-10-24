@@ -49,6 +49,8 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
     private final AdminClient admin;
     private final int brokerId;
     private boolean closed = false;
+    //TODO if the processWith method does something asynchronous than this has to be a concurrentMap
+    final Map<String, Long> logEndOffsets = new HashMap<>();
 
     public KafkaMetricsProcessor(
             int brokerId,
@@ -163,10 +165,13 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
             if (brokerId == controllerId) {
                 Collection<ConsumerGroupListing> consumerGroups = admin.listConsumerGroups().all().get(pollingIntervalSeconds, TimeUnit.SECONDS);
 
-                consumerGroups.parallelStream().forEach(group -> {
+                consumerGroups.parallelStream().
+                        filter(group -> !group.groupId().startsWith("console-consumer")).
+                        forEach(group -> {
                     try {
                         Map<TopicPartition, OffsetAndMetadata> offsets = admin.listConsumerGroupOffsets(group.groupId()).partitionsToOffsetAndMetadata().get(pollingIntervalSeconds, TimeUnit.SECONDS);
                         for (Map.Entry<TopicPartition, OffsetAndMetadata> entry : offsets.entrySet()) {
+                            double consumerOffset = (double) entry.getValue().offset();
                             MeasurementV1 measurement = new MeasurementV1();
                             measurement.setTimestamp(timestamp);
                             measurement.setName("ConsumerOffset");
@@ -175,10 +180,23 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
                             tags.put("topic", entry.getKey().topic());
                             tags.put("partition", String.valueOf(entry.getKey().partition()));
                             Map<String, Double> fields = new HashMap<String, Double>();
-                            fields.put("Value", (double) entry.getValue().offset());
+                            fields.put("Value", consumerOffset);
                             measurement.setTags(tags);
                             measurement.setFields(fields);
                             publish(measurement);
+                            String tp = entry.getKey().topic() + "-" + String.valueOf(entry.getKey().partition());
+                            if (logEndOffsets.containsKey(tp)) {
+                                double logEndOffset = logEndOffsets.get(tp).doubleValue();
+                                double lag = logEndOffset - consumerOffset;
+                                MeasurementV1 measurement2 = new MeasurementV1();
+                                measurement2.setTimestamp(timestamp);
+                                measurement2.setName("ConsumerLag");
+                                Map<String, Double> fields2 = new HashMap<String, Double>();
+                                fields2.put("Value", lag);
+                                measurement2.setTags(tags);
+                                measurement2.setFields(fields2);
+                                publish(measurement2);
+                            }
                         }
                     } catch (Exception e) {
                         log.error("error while fetching offsets for group " + group, e);
@@ -216,7 +234,11 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
             Double value = formatter.anyValueToDouble(gauge.value());
             if (value != null) {
                 fields.put("Value", value);
-                publish(createMeasurement(name, timestamp, fixedTags, fields));
+                MeasurementV1 m = createMeasurement(name, timestamp, fixedTags, fields);
+                publish(m);
+                if (name.getName().equals("LogEndOffset")) {
+                    logEndOffsets.put(m.getTags().get("topic")+"-"+m.getTags().get("partition"), value.longValue());
+                }
             }
         } catch (Exception e) {
             log.warn("Could not process gauge for metric " + name + ": " + e.getMessage());
