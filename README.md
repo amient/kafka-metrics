@@ -295,7 +295,6 @@ The reporter only requires one set of configuration properties:
 
 add following properties to the configuration for the component  
 
-    metric.reporters=io.amient.kafka.metrics.TopicReporter
     kafka.metrics.reporters=io.amient.kafka.metrics.TopicReporter
     kafka.metrics.polling.interval.secs=10
     kafka.metrics.topic=_mterics
