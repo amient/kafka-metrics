@@ -33,6 +33,7 @@ public class InfluxDbPublisher implements MeasurementPublisher {
     static private final Logger log = LoggerFactory.getLogger(InfluxDbPublisher.class);
     static final String COFNIG_INFLUXDB_DATABASE = "influxdb.database";
     static final String COFNIG_INFLUXDB_URL = "influxdb.url";
+    static final String COFNIG_INFLUXDB_RETENTION_POLICY = "influxdb.retention.policy";
     static final String COFNIG_INFLUXDB_USERNAME = "influxdb.username";
     static final String COFNIG_INFLUXDB_PASSWORD = "influxdb.password";
     private static final int DEFAULT_BACK_OFF_MS = 15000;
@@ -40,6 +41,7 @@ public class InfluxDbPublisher implements MeasurementPublisher {
     final private String address;
     private final String username;
     private final String password;
+    private final String retention;
 
     private InfluxDB influxDB = null;
 
@@ -50,6 +52,7 @@ public class InfluxDbPublisher implements MeasurementPublisher {
         this.address = config.getProperty(COFNIG_INFLUXDB_URL, "http://localhost:8086");
         this.username = config.getProperty(COFNIG_INFLUXDB_USERNAME, "root");
         this.password = config.getProperty(COFNIG_INFLUXDB_PASSWORD, "root");
+        this.retention = config.getProperty(COFNIG_INFLUXDB_RETENTION_POLICY, "default");
     }
 
     public void publish(MeasurementV1 m) {
@@ -78,7 +81,7 @@ public class InfluxDbPublisher implements MeasurementPublisher {
         for (java.util.Map.Entry<String, Double> field : m.getFields().entrySet()) {
             builder.field(field.getKey().toString(), field.getValue());
         }
-        influxDB.write(dbName, "autogen", builder.build());
+        influxDB.write(dbName, retention, builder.build());
     }
 
 
