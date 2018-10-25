@@ -20,7 +20,6 @@
 package io.amient.kafka.metrics;
 
 import com.yammer.metrics.core.MetricsRegistry;
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.slf4j.Logger;
@@ -44,14 +43,12 @@ public class KafkaMetricsProcessorBuilder {
     private String topic = "metrics";
     private String bootstrapServers;
     private Integer pollingIntervalSeconds = 10;
-    private int brokerId;
 
     public KafkaMetricsProcessorBuilder(MetricsRegistry registry) {
         this.registry = registry;
     }
 
     public KafkaMetricsProcessorBuilder configure(Properties config) {
-        this.brokerId = Integer.parseInt(config.getProperty("broker.id"));
 
         if (!config.containsKey(ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS) && config.containsKey("port")) {
             //if this is plugged into kafka broker itself we can use it for metrics producer itself
@@ -78,7 +75,7 @@ public class KafkaMetricsProcessorBuilder {
         } else if (propName.equals(ProducerPublisher.CONFIG_BOOTSTRAP_SERVERS)) {
             setBootstrapServers(propValue);
         } else if (propName.equals(CONFIG_POLLING_INTERVAL)) {
-            setPollingInterval(propValue);
+           this.pollingIntervalSeconds = Integer.parseInt(propValue);
         }
         return this;
     }
@@ -105,15 +102,6 @@ public class KafkaMetricsProcessorBuilder {
 
     public KafkaMetricsProcessorBuilder setTags(HashMap<String,String> tags) {
         this.tags = tags;
-        return this;
-    }
-
-    public KafkaMetricsProcessorBuilder setPollingInterval(String interval) {
-        if (interval.equals("1s")) pollingIntervalSeconds = 1;
-        else if (interval.equals("10s")) pollingIntervalSeconds = 10;
-        else if (interval.equals("1m")) pollingIntervalSeconds = 60;
-        else throw new IllegalArgumentException("Illegal configuration value for "
-                    + CONFIG_POLLING_INTERVAL + " = `" + interval  + "`, allowed values are: 1s, 10s, 1m");
         return this;
     }
 
@@ -145,12 +133,8 @@ public class KafkaMetricsProcessorBuilder {
         }
 
 
-        Properties props = new Properties();
-        props.put("bootstrap.servers", bootstrapServers);
-        props.put("client.id", "amient-kafka-metrics-admin");
-        AdminClient admin =  AdminClient.create(props);
         MeasurementPublisher publisher = new ProducerPublisher(bootstrapServers, topic);
-        return new KafkaMetricsProcessor(brokerId, admin, registry, kafkaMetrics, publisher, tags, pollingIntervalSeconds);
+        return new KafkaMetricsProcessor(registry, kafkaMetrics, publisher, tags, pollingIntervalSeconds);
     }
 
 }
