@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class KafkaMetricsProcessor extends AbstractPollingReporter implements MetricProcessor<Long> {
     private static final Logger log = LoggerFactory.getLogger(KafkaMetricsProcessor.class);
@@ -46,15 +47,9 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
     private final Map<org.apache.kafka.common.MetricName, KafkaMetric> kafkaMetrics;
     private final Map<String, String> fixedTags;
     private final Integer pollingIntervalSeconds;
-    private final AdminClient admin;
-    private final int brokerId;
     private boolean closed = false;
-    //TODO if the processWith method does something asynchronous than this has to be a concurrentMap
-    final Map<String, Long> logEndOffsets = new HashMap<>();
 
     public KafkaMetricsProcessor(
-            int brokerId,
-            AdminClient admin,
             MetricsRegistry metricsRegistry,
             Map<org.apache.kafka.common.MetricName, KafkaMetric> kafkaMetrics,
             MeasurementPublisher publisher,
@@ -62,14 +57,12 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
             Integer pollingIntervalSeconds
     ) {
         super(metricsRegistry, "streaming-reporter");
-        this.brokerId = brokerId;
         this.kafkaMetrics = kafkaMetrics;
         this.clock = Clock.defaultClock();
         this.fixedTags = fixedTags;
         this.publisher = publisher;
         this.formatter = new MeasurementFormatter();
         this.pollingIntervalSeconds = pollingIntervalSeconds;
-        this.admin = admin;
     }
 
     public Integer getPollingIntervaSeconds() {
@@ -87,7 +80,7 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
         if (name.getScope() != null && !name.getScope().isEmpty()) {
             if (name.getGroup() != null && name.getGroup().startsWith("kafka.") && name.getScope().contains(".")) {
                 /*
-                 * Decompose old kafka metrics tags which uses yammer metrics Scope to "squash" all tags together
+                 * Decompose kafka metrics tags which uses yammer metrics Scope to "squash" all tags together
                  */
                 String[] scope = name.getScope().split("\\.");
                 for (int s = 0; s < scope.length; s += 2) {
@@ -159,53 +152,6 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
         } catch (Exception e) {
             e.printStackTrace();
         }
-        //process extra consumer metrics
-        try {
-            int controllerId = admin.describeCluster().controller().get(pollingIntervalSeconds, TimeUnit.SECONDS).id();
-            if (brokerId == controllerId) {
-                Collection<ConsumerGroupListing> consumerGroups = admin.listConsumerGroups().all().get(pollingIntervalSeconds, TimeUnit.SECONDS);
-
-                consumerGroups.parallelStream().
-                        filter(group -> !group.groupId().startsWith("console-consumer")).
-                        forEach(group -> {
-                    try {
-                        Map<TopicPartition, OffsetAndMetadata> offsets = admin.listConsumerGroupOffsets(group.groupId()).partitionsToOffsetAndMetadata().get(pollingIntervalSeconds, TimeUnit.SECONDS);
-                        for (Map.Entry<TopicPartition, OffsetAndMetadata> entry : offsets.entrySet()) {
-                            double consumerOffset = (double) entry.getValue().offset();
-                            MeasurementV1 measurement = new MeasurementV1();
-                            measurement.setTimestamp(timestamp);
-                            measurement.setName("ConsumerOffset");
-                            Map<String, String> tags = new HashMap<String, String>(fixedTags);
-                            tags.put("group", group.groupId());
-                            tags.put("topic", entry.getKey().topic());
-                            tags.put("partition", String.valueOf(entry.getKey().partition()));
-                            Map<String, Double> fields = new HashMap<String, Double>();
-                            fields.put("Value", consumerOffset);
-                            measurement.setTags(tags);
-                            measurement.setFields(fields);
-                            publish(measurement);
-                            String tp = entry.getKey().topic() + "-" + String.valueOf(entry.getKey().partition());
-                            if (logEndOffsets.containsKey(tp)) {
-                                double logEndOffset = logEndOffsets.get(tp).doubleValue();
-                                double lag = logEndOffset - consumerOffset;
-                                MeasurementV1 measurement2 = new MeasurementV1();
-                                measurement2.setTimestamp(timestamp);
-                                measurement2.setName("ConsumerLag");
-                                Map<String, Double> fields2 = new HashMap<String, Double>();
-                                fields2.put("Value", lag);
-                                measurement2.setTags(tags);
-                                measurement2.setFields(fields2);
-                                publish(measurement2);
-                            }
-                        }
-                    } catch (Exception e) {
-                        log.error("error while fetching offsets for group " + group, e);
-                    }
-                });
-            }
-        } catch (Exception e) {
-            log.error("error while processing conusmer offsets", e);
-        }
     }
 
     @Override
@@ -236,9 +182,6 @@ public class KafkaMetricsProcessor extends AbstractPollingReporter implements Me
                 fields.put("Value", value);
                 MeasurementV1 m = createMeasurement(name, timestamp, fixedTags, fields);
                 publish(m);
-                if (name.getName().equals("LogEndOffset")) {
-                    logEndOffsets.put(m.getTags().get("topic")+"-"+m.getTags().get("partition"), value.longValue());
-                }
             }
         } catch (Exception e) {
             log.warn("Could not process gauge for metric " + name + ": " + e.getMessage());
